@@ -68,7 +68,7 @@ def inicializar_base_datos():
 
 @app.route('/')
 def index():
-    return render_template('inicio_sesion.html')
+    return render_template('seleccionar_rol.html')
 
 @app.route('/menu/docente')
 def menu_docente():

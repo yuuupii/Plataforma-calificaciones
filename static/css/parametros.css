@@ -1,0 +1,83 @@
+/* ========================== */
+/* 🌐 Responsividad general */
+/* ========================== */
+
+/* Reset básico */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Layout base */
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f4f6f9;
+  color: #333;
+}
+
+/* Contenedores flexibles */
+.container-responsive {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+}
+
+/* Botones estándar */
+.btn-estandar {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.btn-estandar:hover {
+  background-color: #ddd;
+}
+
+/* Inputs */
+.input-estandar {
+  width: 100%;
+  height: 38px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 0 10px;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+/* Títulos */
+h1, h2, h3 {
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* ========================== */
+/* 📱 Media queries */
+/* ========================== */
+
+@media screen and (max-width: 767px) {
+  .container-responsive {
+    padding: 0.5rem;
+  }
+
+  .btn-estandar {
+    width: 100%;
+    font-size: 0.9rem;
+  }
+
+  .input-estandar {
+    font-size: 0.9rem;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+  }
+}

@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Registro de Usuarios</title>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parametros.css') }}">
 </head>
 <body>
 <div class="container mt-5">
@@ -75,7 +76,7 @@
            class="btn btn-sm btn-danger"
            onclick="return confirm('¿Eliminar este docente?')">❌</a>
            <a href="{{ url_for('actualizar_contrasena', tipo='docente', user_id=d.id) }}"
-            class="btn btn-sm btn-warning">🔑</a>
+            class="btn btn-sm btn-warning">🔧</a>
       </td>
     </tr>
     {% endfor %}
@@ -108,7 +109,7 @@
            class="btn btn-sm btn-danger"
            onclick="return confirm('¿Eliminar este administrativo?')">❌</a>
            <a href="{{ url_for('actualizar_contrasena', tipo='administrativo', user_id=a.id) }}"
-            class="btn btn-sm btn-warning">🔑</a>
+            class="btn btn-sm btn-warning">🔧</a>
       </td>
     </tr>
     {% endfor %}

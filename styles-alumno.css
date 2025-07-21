@@ -1,0 +1,28 @@
+.student-dashboard {
+    background-color: #ffffff;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    margin-top: 20px;
+}
+
+.student-dashboard h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.student-dashboard table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.student-dashboard th,
+.student-dashboard td {
+    padding: 10px;
+    border: 1px solid #ccc;
+    text-align: left;
+}
+
+.student-dashboard th {
+    background-color: #f4f4f4;
+}

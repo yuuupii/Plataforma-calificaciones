@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registrar Calificación</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    .acordeon-boton {
+      display: inline-flex;
+      align-items: center;
+      background-color: #f7f9fc;
+      color: #333;
+      padding: 8px 20px;
+      border-radius: 30px;
+      border: 1px solid #ccc;
+      font-weight: 500;
+      text-decoration: none;
+      transition: background-color 0.3s, border-color 0.3s;
+      cursor: pointer;
+    }
+    .acordeon-boton:hover {
+      background-color: #e3f2fd;
+      border-color: #4a90e2;
+    }
+    .rotate-icon {
+      transition: transform 0.3s ease;
+      margin-left: 8px;
+    }
+    .rotado {
+      transform: rotate(180deg);
+    }
+    .fila-clara {
+      background-color: #abd7ec;
+      color: #000;
+    }
+    .fila-suave {
+      background-color: #c7e6f7;
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+<div class="container mt-4">
+
+  <h2 class="text-center mb-4">Registro de Alumnos y Calificaciones</h2>
+
+  {% if mensaje %}
+  <div class="alert alert-info alert-dismissible fade show text-center" role="alert">
+    {{ mensaje }}
+    <button type="button" class="close" data-dismiss="alert" aria-label="Cerrar">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+  {% endif %}
+
+  <!-- Formulario para añadir alumno -->
+  <h4>➕ Añadir o actualizar alumno</h4>
+  <form method="POST" action="{{ url_for('datos_alumnos') }}" class="mb-5">
+    <div class="form-row">
+      <div class="form-group col-md-4">
+        <label for="nombre">Nombre:</label>
+        <input type="text" name="nombre" id="nombre" class="form-control" required>
+      </div>
+      <div class="form-group col-md-3">
+        <label for="matricula">Matrícula:</label>
+        <input type="text" name="matricula" id="matricula" class="form-control" required>
+      </div>
+      <div class="form-group col-md-3">
+        <label for="licenciatura">Licenciatura:</label>
+        <select name="licenciatura" id="licenciatura" class="form-control" required>
+          <option value="Matematicas">Matemáticas</option>
+          <option value="Primaria">Primaria</option>
+          <option value="Espanol">Español</option>
+        </select>
+      </div>
+      <div class="form-group col-md-2">
+        <label for="semestre">Semestre:</label>
+        <select name="semestre" id="semestre" class="form-control" required>
+          {% for s in range(1, 8) %}
+          <option value="{{ s }}">{{ s }}°</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary btn-block">Guardar Alumno</button>
+  </form>
+
+  <!-- Formulario para registrar calificación -->
+  <h4 class="mt-5">📝 Registrar calificación</h4>
+  <form method="POST" action="{{ url_for('registrar_calificacion') }}">
+    <div class="form-group">
+      <label for="alumno">Alumno:</label>
+      <select name="alumno_id" id="alumno" class="form-control" required>
+        <option value="">Selecciona un alumno</option>
+        {% for alumno in alumnos %}
+        <option value="{{ alumno.id }}" data-licenciatura="{{ alumno.licenciatura }}">{{ alumno.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="semestre">Semestre:</label>
+      <select name="semestre" id="semestre" class="form-control" required>
+        {% for s in range(1, 8) %}
+        <option value="{{ s }}">{{ s }}° semestre</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="materia">Materia:</label>
+      <select name="materia_id" id="materia" class="form-control" required>
+        <option value="">Selecciona una materia</option>
+        {% for materia in materias %}
+        <option value="{{ materia.id }}"
+                data-semestre="{{ materia.semestre }}"
+                data-licenciatura="{{ materia.licenciatura }}">
+          {{ materia.nombre }} ({{ materia.licenciatura }} - {{ materia.semestre }}°)
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="calificacion">Calificación:</label>
+      <input type="number" name="calificacion" id="calificacion" class="form-control" min="0" max="100" required>
+    </div>
+
+    <button type="submit" class="btn btn-success btn-block">Guardar Calificación</button>
+  </form>
+
+<!-- Catálogo de alumnos -->
+<hr class="my-5">
+<h4 class="mb-4 text-dark">📚 Catálogo de Alumnos</h4>
+<div id="alumnos-por-licenciatura">
+    <div id="alerta-eliminado" class="alert alert-success text-center" style="display: none;">
+  Alumno eliminado con éxito.
+</div>
+  {% for licenciatura, alumnos_por_semestre in alumnos_agrupados.items() %}
+  <div class="card mb-3">
+    <div class="card-header bg-dark d-flex justify-content-between align-items-center text-white">
+      <div>
+        <a class="acordeon-boton text-dark" data-toggle="collapse" href="#{{ licenciatura | replace(' ', '_') }}">
+          {{ licenciatura }} <span class="rotate-icon ml-2">&#9662;</span>
+        </a>
+      </div>
+      <div class="lupa-area d-flex align-items-center position-relative">
+        <button class="btn btn-sm btn-light lupa-buscar" data-licenciatura="{{ licenciatura | replace(' ', '_') }}">
+          <i class="fas fa-search"></i>
+        </button>
+        <div class="buscador-licenciatura position-absolute ml-2"
+             id="buscador-{{ licenciatura | replace(' ', '_') }}">
+          <div class="input-group input-group-sm rounded-pill shadow bg-white">
+            <input type="text"
+                   class="form-control border-0 px-3 input-busqueda-local"
+                   data-licenciatura="{{ licenciatura | replace(' ', '_') }}"
+                   placeholder="Buscar en {{ licenciatura }}">
+            <div class="input-group-append">
+              <span class="input-group-text bg-white border-0">
+                <i class="fas fa-user text-dark"></i>
+              </span>
+            </div>
+          </div>
+          <div class="alert alert-warning mt-2 py-1 px-2 text-center small mb-0 sin-resultados-local"
+               style="display: none;">
+            No se encontró ningún alumno en {{ licenciatura }}.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="{{ licenciatura | replace(' ', '_') }}" class="collapse">
+      <div class="card-body">
+        {% for semestre, alumnos in alumnos_por_semestre.items() %}
+        <div class="bg-secondary text-white px-3 py-2 mb-0">
+          <h6 class="mb-0">
+            <a class="acordeon-boton text-dark"
+               data-toggle="collapse"
+               href="#{{ licenciatura | replace(' ', '_') }}_{{ semestre }}">
+              Semestre {{ semestre }} <span class="rotate-icon">&#9662;</span>
+            </a>
+          </h6>
+        </div>
+        <div id="{{ licenciatura | replace(' ', '_') }}_{{ semestre }}" class="collapse">
+          <table class="table mb-4">
+            <thead class="thead-light">
+              <tr>
+                <th>Nombre</th>
+                <th>Matrícula</th>
+                <th style="width: 80px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for alumno in alumnos %}
+              <tr id="alumno-{{ alumno.id }}" class="fila-alumno fila-{{ licenciatura | replace(' ', '_') }}
+                         {% if loop.index0 % 2 == 0 %}fila-clara{% else %}fila-suave{% endif %}">
+                <td>{{ alumno.nombre }}</td>
+                <td>{{ alumno.matricula }}</td>
+                <td class="text-center">
+                    <a href="{{ url_for('historial_academico', alumno_id=alumno.id) }}"
+                    class="btn btn-sm btn-info"
+                    title="Ver historial académico">
+                    <i class="fas fa-book"></i>
+                    </a>
+                  <button type="button"
+                          class="btn btn-sm btn-light eliminar-alumno"
+                          data-id="{{ alumno.id }}"
+                          title="Eliminar alumno">
+                    <i class="fas fa-trash-alt text-danger"></i>
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<style>
+.buscador-licenciatura {
+  right: 0;
+  width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  z-index: 10;
+}
+.buscador-licenciatura.activo {
+  width: 280px;
+  opacity: 1;
+}
+</style>
+
+<script>
+$(document).ready(function () {
+  let animacionActiva = false;
+
+  // Mostrar/ocultar buscador individual por licenciatura
+  $('.lupa-buscar').on('click', function (e) {
+    e.stopPropagation();
+    const lic = $(this).data('licenciatura');
+    const $buscador = $('#buscador-' + lic);
+    const $collapse = $('#' + lic);
+
+    $('.buscador-licenciatura').not($buscador).removeClass('activo');
+    $buscador.toggleClass('activo');
+
+    if (!$collapse.hasClass('show')) {
+      $collapse.collapse('show');
+    }
+
+    $buscador.find('.input-busqueda-local').val('');
+    $('.fila-' + lic).show();
+    $buscador.find('.sin-resultados-local').hide();
+  });
+
+  // Buscar alumno dentro de cada licenciatura
+  $('.input-busqueda-local').on('input', async function () {
+    const lic = $(this).data('licenciatura');
+    const filtro = $(this).val().toLowerCase();
+    const $alerta = $('#buscador-' + lic + ' .sin-resultados-local');
+
+    let $objetivo = null;
+    let encontrados = 0;
+
+    $('.fila-' + lic).each(function () {
+      const visible = $(this).text().toLowerCase().includes(filtro);
+      $(this).toggle(visible);
+      if (visible && !$objetivo) $objetivo = $(this), encontrados++;
+      else if (visible) encontrados++;
+    });
+
+    $alerta.toggle(encontrados === 0);
+
+    if (!filtro || encontrados === 0 || animacionActiva) return;
+
+    const $semestre = $objetivo.closest('.collapse');
+    const $licenciatura = $semestre.closest('.collapse');
+
+    if (!$licenciatura.hasClass('show')) $licenciatura.collapse('show');
+    await esperarVisible($licenciatura);
+
+    if (!$semestre.hasClass('show')) $semestre.collapse('show');
+    await esperarVisible($semestre);
+
+    animacionActiva = true;
+    $('html, body').animate({
+      scrollTop: $objetivo.offset().top - 100
+    }, 500, () => {
+      $objetivo.addClass('table-warning');
+      setTimeout(() => {
+        $objetivo.removeClass('table-warning');
+        animacionActiva = false;
+      }, 1500);
+    });
+  });
+
+  // Esperar a que un contenedor colapsado esté visible
+  function esperarVisible($elem, intentos = 0) {
+    return new Promise(resolve => {
+      const check = setInterval(() => {
+        const visible = $elem.is(':visible') && $elem[0].scrollHeight > 0;
+        if (visible || intentos++ > 20) {
+          clearInterval(check);
+          resolve();
+        }
+      }, 50);
+    });
+  }
+
+  // Cerrar el buscador al hacer clic fuera
+  $(document).on('click', function (e) {
+    if (!$(e.target).closest('.lupa-area').length) {
+      $('.buscador-licenciatura').removeClass('activo');
+    }
+  });
+
+  // Rotar flechitas
+  $('.collapse').on('show.bs.collapse', function () {
+    $(this).prev().find('.rotate-icon').addClass('rotado');
+  }).on('hide.bs.collapse', function () {
+    $(this).prev().find('.rotate-icon').removeClass('rotado');
+  });
+
+  // 🔥 Eliminar alumno vía AJAX
+  $('.eliminar-alumno').on('click', function () {
+    const id = $(this).data('id');
+    const $fila = $('#alumno-' + id);
+
+    if (!confirm('¿Deseas eliminar a este alumno?')) return;
+
+    fetch('{{ url_for("delete_alumno") }}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: new URLSearchParams({ id })
+    })
+    .then(res => {
+      if (res.ok) {
+        $fila.fadeOut(300, () => $fila.remove());
+        $('#alerta-eliminado').fadeIn(300).delay(1500).fadeOut(500);
+      } else {
+        alert('Error al eliminar el alumno.');
+      }
+    })
+    .catch(() => alert('No se pudo conectar con el servidor.'));
+  });
+});
+</script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

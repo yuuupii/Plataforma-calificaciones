@@ -1,0 +1,213 @@
+#cabecera{
+	backgrd:linear-gradient(yellow,red,#999999,orange,blue,black);
+	bord: 20px solid aqua;
+	padding: 20px;
+	border-radius:20px;
+	background: -webkit-linear-gradient(top, white, #006699);
+	background: -moz-linear-gradient(top, white, #006699);
+	box-shadow: gray 5px 5px 8px 8px inset;
+	color:lime;
+	font-size:30px;
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+.uno{
+	background-color: #999999;
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+.dos{
+	background-color: #999999;
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+
+.cuatro{
+	background-color: #999999;
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+.cinco{
+	background-color: yellow;
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+.seis{
+	background-color: yellow;
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+.siete{
+	background-color: blue;
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+.ocho{
+	background-color: green;
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+.nueve{
+	background-color: green;
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+.diez{
+	background-color: green;
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+.once{
+	background-color: green;
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+.doce{
+	background-color: rgb(229, 255, 0);
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+.trece{
+	background-color: rgb(0, 255, 106);
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+.catorce{
+	background-color:rgb(0, 255, 106);
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+.quince{
+	background-color: rgb(0, 255, 106);
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+.diesiseis{
+	background-color: rgb(0, 255, 106);
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+.fondo{
+	: rgb(0, 95, 112);
+}
+.fondo_dos{
+	: rgb(251, 255, 0);
+}
+.fondo_tres{
+	: rgb(105, 107, 0);
+}
+body{
+	background-image: url(https://fondosmil.com/fondo/26163.jpg);
+	
+}
+.fondo{
+	box-shadow: rgb(150, 150, 150) 5px 5px 5px 10px;
+}
+.fondo{
+	border-radius: 15px;
+}
+h1 {
+front: bold 20px verdana, sans-serif;
+}
+h2 {
+front:bold 14px verdana, sans-serif;
+}
+h1 {
+text-align: center;
+}
+h2 {
+text-align: center;
+}
+#agrupar {
+	width: 90%;
+	margin: 15px auto;
+	text-align: left;
+}
+#menu{
+	display: inline-block;
+	color:gray;
+	margin-top:10px;
+	width:90%;
+	font-size:25px;
+	font-weight:bold;
+	text-align:center;
+	text-transform:uppercase;
+	border-radius:20px;
+	backgund: linear-gradient(#999999,black,red,blue);
+	margin:10px;
+	padding: 0px;
+	box-shadow: red 5px 5px 5px 10px;
+	background: -webkit-linear-gradient(left, white, #006699);
+	background: -moz-linear-gradient(left, white, #006699);
+}
+#menu_dos li {
+	display: inline-block;
+	border-radius:20px;
+	backgrnd:linear-gradient(red,aqua);
+	list-style: none;
+	padding: 5px;
+	box-shadow: purple 5px 5px 5px 10px;
+	background: -webkit-linear-gradient(bottom, white, #006699);
+	background: -moz-linear-gradient(bottom, white, #006699);
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+#veinte{
+	width: 40%;
+	display:inline-block;
+	float: right;
+	color:purple;
+	font-size:15px;
+	font-weight:bold;
+	text-align:center;
+	text-transform:uppercase;
+	border-radius:20px;
+	backgroun: linear-gradient(#999999,black,red,blue);
+	margin:20px;
+	margin-top:10px;
+	padding: 20px;
+	box-shadow: yellow 5px 5px 5px 10px;
+	background: -webkit-linear-gradient(left, white, #006699);
+	background: -moz-linear-gradient(left, white, #006699);
+}
+
+#pie {
+	clear: both;
+	background: gray;
+	text-align: center;
+	padding: 20px;
+	border-top: 2px solid #999999;
+}
+#eso li {
+	background:linear-gradient(aqua,red,#999999,gray,blue,black);
+	display: inline-block;
+	border-radius:20px;
+	list-style: none;
+	padding: 5px;
+	color: rgb(0, 255, 106);
+	box-shadow: black 5px 5px 5px 10px;
+}
+#tres{
+	color:red;
+	margin-top:10px;
+	width:40%;
+	font-size:15px;
+	text-transform:uppercase;
+	border-radius:20px;
+	backgrnd: linear-gradient(#999999,black,lime,blue);
+	margin:20px;
+	padding: 20px;
+	box-shadow: blue 5px 5px 5px 10px;
+	float: right;
+	background: -webkit-linear-gradient(right, white, #006699);
+	background: -moz-linear-gradient(right, white, #006699);
+}
+#dos {
+	width: 25%;
+	margin: 100px;
+	float: right;
+	padding: 20px;
+	backgrod: aqua;
+	border-radius:80px;
+	backgrod:linear-gradient(lime,blue,black,pink,purple);
+	box-shadow: red 5px 5px 5px 10px;
+	background: -webkit-linear-gradient(bottom, white, #006699);
+	background: -moz-linear-gradient(bottom, white, #006699);
+	background: -webkit-radial-gradient(center, circle, blue 15px, orange 30px, lime 45px, red 60px, black 75px, yellow 90px, yellow 105px, purple 120px, pink 135px, white 135px, blue 150px);
+	background: -moz-radial-gradient(center, circle, blue 15px, orange 30px, lime 45px, red 60px, black 75px, yellow 90px, yellow 105px, purple 120px, pink 135px, white 135px, blue 150px);
+	text-shadow: rgb(0, 0, 150) 3px 3px 5px;
+}
+#nose{
+	color:blue;
+	font-size:25px;
+}
+#emm{
+	box-shadow :rgb(0, 153, 255) 5px 5px 5px 10px;
+	margin:30px;
+	text-align:center
+}
+#nota "inset" sirve para insertar las sombras dentro de un aobjeto
+ejemplo bbox-shadow: red 5px 5px 5px 10px inset;

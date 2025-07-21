@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel del Profesor</title>
+    <link rel="stylesheet" href="styles-panel.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <h1>Panel del Profesor</h1>
+        <form action="add_grade.php" method="post">
+            <label for="student">Estudiante:</label>
+            <input type="text" id="student" name="student" required>
+            <label for="subject">Materia:</label>
+            <input type="text" id="subject" name="subject" required>
+            <label for="grade">Calificación:</label>
+            <input type="number" id="grade" name="grade" required>
+            <button type="submit">Añadir Calificación</button>
+        </form>
+    </div>
+</body>
+</html>

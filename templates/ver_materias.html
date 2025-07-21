@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Catálogo de Materias</title>
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+<div class="container mt-4">
+    <h2 class="text-center mb-4">Catálogo de Materias Registradas</h2>
+
+    {% for licenciatura, semestres in materias.items() %}
+    <div class="card mb-3">
+        <div class="card-header bg-dark text-white font-weight-bold">
+            {{ licenciatura }}
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for semestre in range(1, 8) %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="border p-3 h-100">
+                        <h5 class="text-primary">Semestre {{ semestre }}</h5>
+                        {% set lista = semestres.get(semestre|string, []) %}
+                        {% if lista %}
+                        <ul class="list-group list-group-flush">
+                            {% for materia in lista %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ materia.nombre }}
+                                <form method="POST" action="{{ url_for('eliminar_materia', materia_id=materia.id) }}"
+                                      onsubmit="return confirm('¿Eliminar {{ materia.nombre }}?');">
+                                    <button class="btn btn-sm btn-danger">Eliminar</button>
+                                </form>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="text-muted">Sin materias registradas.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+</body>
+</html>

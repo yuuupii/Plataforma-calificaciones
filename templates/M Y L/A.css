@@ -1,0 +1,186 @@
+#A{
+	color: white;
+	background: linear-gradient(black,red,blue,black);
+	font-size: 65px;
+	margin:25px;
+	padding:25px;
+	box-shadow: aqua 5px 5px 5px 10px inset;
+	border-radius:80px;
+	text-shadow: rgb(0, 0, 150) 6px 6px 9px;
+}
+#B{
+	width: 20%;
+	margin: 15%;
+	float: right;
+	padding: 25px;
+	list-style: none;
+	background: linear-gradient(#999999,black,blue,purple,pink);
+	border-radius:20px;
+	box-shadow: rgb(0, 153, 255) 5px 5px 5px 10px;
+}
+#C{
+	color: white;
+	background: linear-gradient(black,red,blue,black);
+	font-size: 65px;
+	margin:25px;
+	padding:25px;
+	box-shadow: aqua 5px 5px 5px 10px inset;
+	border-radius:80px;
+	text-shadow: rgb(0, 0, 150) 6px 6px 9px;
+}
+#D{
+	width: 20%;
+	margin: 15%;
+	float: right;
+	padding: 25px;
+	list-style: none;
+	background: linear-gradient(#999999,black,blue,purple,pink);
+	border-radius:20px;
+	box-shadow: rgb(0, 153, 255) 5px 5px 5px 10px;
+}
+#E{
+	color: white;
+	background: linear-gradient(black,red,blue,black);
+	font-size: 65px;
+	margin:25px;
+	padding:25px;
+	box-shadow: aqua 5px 5px 5px 10px inset;
+	border-radius:80px;
+	text-shadow: rgb(0, 0, 150) 6px 6px 9px;
+}
+#F{
+	width: 20%;
+	margin: 15%;
+	float: right;
+	padding: 25px;
+	list-style: none;
+	background: linear-gradient(#999999,black,blue,purple,pink);
+	border-radius:20px;
+	box-shadow: rgb(0, 153, 255) 5px 5px 5px 10px;
+}
+#G{
+	color: white;
+	background: linear-gradient(black,red,blue,black);
+	font-size: 65px;
+	margin:25px;
+	padding:25px;
+	box-shadow: aqua 5px 5px 5px 10px inset;
+	border-radius:80px;
+	text-shadow: rgb(0, 0, 150) 6px 6px 9px;
+}
+#H{
+	width: 20%;
+	margin: 15%;
+	float: right;
+	padding: 25px;
+	list-style: none;
+	background: linear-gradient(#999999,black,blue,purple,pink);
+	border-radius:20px;
+	box-shadow: rgb(0, 153, 255) 5px 5px 5px 10px;
+}
+#I{
+	width: 20%;
+	margin: 15%;
+	float: center;
+	padding: 25px;
+	list-style: none;
+	background: linear-gradient(#999999,black,blue,purple,pink);
+	border-radius:20px;
+	box-shadow: rgb(0, 153, 255) 5px 5px 5px 10px;
+	text-align: center;
+}
+#hola{
+	color: white;
+	background: linear-gradient(black,red,blue,black);
+	font-size: 65px;
+	margin:25px;
+	padding:25px;
+	box-shadow: aqua 5px 5px 5px 10px inset;
+	border-radius:80px;
+	text-shadow: rgb(0, 0, 150) 6px 6px 9px;
+}
+#hola1{
+	background: linear-gradient(#FC354C, #0ABFBC);
+	border-radius:20px;
+	margin:15px;
+	padding:20px;
+	box-shadow: red 5px 5px 5px 10px;
+}
+#hola2{
+	margin:25px;
+	color:blue;
+	background: -webkit-linear-gradient(right, #12C2E9,#FFF94C,#F64F59);
+	background: -moz-linear-gradient(right, #12C2E9,#FFF94C,#F64F59);
+	width:60%;
+	padding:15px;
+	box-shadow: aqua 5px 5px 5px 10px;
+	font-size:20px;
+}
+#hola3{
+	background: -webkit-linear-gradient(left, #1E2AD2, #0ABFBC);
+	background: -moz-linear-gradient(left, #1E2AD2, #0ABFBC);
+	margin:15px;
+	padding:20px;
+	border-radius:20px;
+	font-size: 25px;
+	box-shadow: #0575E6 5px 5px 5px 10px;
+	color: #00f260;
+	display: inline-block;
+	width:35%;
+}
+#pie{
+	clear: both;
+	background: gray;
+	text-align: center;
+	padding: 20px;
+}
+#hola4{
+	margin:15px;
+	color:white;
+	padding:15px;
+	width:45%;
+	background: -webkit-linear-gradient(top, #FC354C,#51EDF2);
+	background: -moz-linear-gradient(top, #FC354C,#51EDF2);
+	float:right;
+	border-radius:25px;
+	font-size: 25px;
+	box-shadow: red 5px 5px 5px 10px;
+}
+body{
+	background-image: url(https://images.pexels.com/photos/33545/sunrise-phu-quoc-island-ocean.jpg?auto=compress&cs=tinysrgb&w=600);
+}
+#hola5{
+	margin:15px;
+	color:purple;
+	padding:25px;
+	width:35%;
+	background: -webkit-linear-gradient(top, #0575E6,#51EDF2);
+	background: -moz-linear-gradient(top, #0575E6,#51EDF2);
+	float:left;
+	border-radius:25px;
+	font-size: 20px;
+	box-shadow:  5px 5px 5px 10px;
+}
+#hola6{
+	margin:15px;
+	color:purple;
+	padding:25px;
+	width:35%;
+	background: -webkit-linear-gradient(top, #0575E6,#51EDF2);
+	background: -moz-linear-gradient(top, #0575E6,#51EDF2);
+	float:right;
+	border-radius:25px;
+	font-size: 20px;
+	box-shadow:  5px 5px 5px 10px;
+}
+#II{
+	width: 20%;
+	margin: 25px;
+	float: left;
+	padding: 25px;
+	list-style: none;
+	background: linear-gradient(#999999,black,blue,purple,pink);
+	border-radius:20px;
+	box-shadow: rgb(0, 153, 255) 5px 5px 5px 10px;
+	text-align: center;
+}

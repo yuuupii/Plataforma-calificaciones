@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú de Minijuegos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #222;
+            color: white;
+            padding: 50px;
+        }
+        button {
+            display: block;
+            margin: 20px auto;
+            padding: 15px;
+            font-size: 18px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 200px;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <h1>Menú de Minijuegos</h1>
+    <button onclick="cargarJuego('Plantas%20vs%20Zombis.html')">🌱 Plantas vs Zombis</button>
+    <button onclick="cargarJuego('Escape%20Rapido.html')">⚡ Escape rápido</button>
+    <button onclick="cargarJuego('Reaccion%20Rapida.html')">⏳ ¿Qué tan rápida es tu reacción?</button>
+
+    <script>
+        function cargarJuego(url) {
+            window.location.href = url; // Redirige a la página del minijuego dentro de la misma carpeta
+        }
+    </script>
+</body>
+</html>

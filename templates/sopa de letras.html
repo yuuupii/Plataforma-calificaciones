@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sopa de Letras</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        table {
+            margin: 20px auto;
+            border-collapse: collapse;
+        }
+        td {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #333;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .word-list {
+            margin-top: 20px;
+        }
+        .word-list span {
+            margin: 5px;
+            padding: 5px 10px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sopa de Letras</h1>
+    <table id="word-search">
+        <!-- Aquí se generará la sopa de letras -->
+    </table>
+    <div class="word-list">
+        <strong>Palabras:</strong>
+        <span>GATO</span>
+        <span>PERRO</span>
+        <span>CASA</span>
+        <span>FLOR</span>
+        <span>MESA</span>
+    </div>
+
+    <script>
+        // Configuración de palabras y tamaño del tablero
+        const words = ["GATO", "PERRO", "CASA", "FLOR", "MESA"];
+        const gridSize = 10; // Tamaño del tablero (gridSize x gridSize)
+        let grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(""));
+
+        // Colocar las palabras en el tablero
+        function placeWords() {
+            for (const word of words) {
+                let placed = false;
+                while (!placed) {
+                    const direction = Math.random() < 0.5 ? "horizontal" : "vertical";
+                    const row = Math.floor(Math.random() * gridSize);
+                    const col = Math.floor(Math.random() * gridSize);
+
+                    if (
+                        (direction === "horizontal" && col + word.length <= gridSize) ||
+                        (direction === "vertical" && row + word.length <= gridSize)
+                    ) {
+                        let canPlace = true;
+
+                        for (let i = 0; i < word.length; i++) {
+                            const cell =
+                                direction === "horizontal"
+                                    ? grid[row][col + i]
+                                    : grid[row + i][col];
+                            if (cell !== "" && cell !== word[i]) {
+                                canPlace = false;
+                                break;
+                            }
+                        }
+
+                        if (canPlace) {
+                            for (let i = 0; i < word.length; i++) {
+                                if (direction === "horizontal") {
+                                    grid[row][col + i] = word[i];
+                                } else {
+                                    grid[row + i][col] = word[i];
+                                }
+                            }
+                            placed = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Rellenar espacios vacíos con letras aleatorias
+        function fillEmptySpaces() {
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    if (grid[row][col] === "") {
+                        grid[row][col] = String.fromCharCode(
+                            65 + Math.floor(Math.random() * 26)
+                        );
+                    }
+                }
+            }
+        }
+
+        // Dibujar el tablero en el DOM
+        function drawGrid() {
+            const table = document.getElementById("word-search");
+            table.innerHTML = "";
+            for (let row = 0; row < gridSize; row++) {
+                const tr = document.createElement("tr");
+                for (let col = 0; col < gridSize; col++) {
+                    const td = document.createElement("td");
+                    td.textContent = grid[row][col];
+                    tr.appendChild(td);
+                }
+                table.appendChild(tr);
+            }
+        }
+
+        // Inicializar la sopa de letras
+        function initWordSearch() {
+            placeWords();
+            fillEmptySpaces();
+            drawGrid();
+        }
+
+        initWordSearch();
+    </script>
+</body>
+</html>

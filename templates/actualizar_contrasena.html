@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Actualizar Contraseña</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-5">
+  <div class="card">
+    <div class="card-header bg-warning text-white text-center">
+      <h4>Actualizar Contraseña de {{ tipo|capitalize }} "{{ usuario['usuario'] }}"</h4>
+    </div>
+    <div class="card-body">
+      <form method="POST">
+        <div class="form-group">
+          <label for="nueva_contrasena">Nueva contraseña:</label>
+          <input type="password" name="nueva_contrasena" id="nueva_contrasena" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-warning btn-block">Actualizar</button>
+      </form>
+    </div>
+    <div class="card-footer text-center">
+      <a href="{{ url_for('registrar_usuario') }}">🔙 Volver al panel</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calificaciones</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="container mt-4">
+    {% if calificaciones %}
+        <h1 class="text-center">Calificaciones de {{ calificaciones[0]['estudiante_nombre'] }}</h1>
+        {% if semestre_actual %}
+            <h2 class="text-center">Último semestre cursado: {{ semestre_actual }}°</h2>
+        {% endif %}
+
+        <div class="row">
+            <!-- Tabla de materias -->
+            <div class="col-md-6">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Materia</th>
+                            <th>Calificación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for calificacion in calificaciones %}
+                        <tr>
+                            <td>{{ calificacion['materia_nombre'] }}</td>
+                            <td>{{ calificacion['calificacion'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- Botón para eliminar duplicados -->
+                <form method="POST" action="{{ url_for('eliminar_duplicados') }}">
+                    <button type="submit" class="btn btn-danger">Eliminar Calificaciones Duplicadas</button>
+                </form>
+
+                <!-- Formulario de colores -->
+                <form id="colorForm" class="mt-4">
+                    <h3>Selecciona colores para las materias:</h3>
+                    {% for calificacion in calificaciones %}
+                    <div class="form-group">
+                        <label for="color-{{ loop.index }}">{{ calificacion['materia_nombre'] }}</label>
+                        <input type="color" id="color-{{ loop.index }}" name="color-{{ loop.index }}" value="#000000" class="form-control">
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary">Actualizar Colores</button>
+                </form>
+            </div>
+
+            <!-- Gráfico -->
+            <div class="col-md-6">
+                <h2 class="text-center">Gráfico de Calificaciones</h2>
+                <canvas id="calificacionesChart"></canvas>
+            </div>
+        </div>
+    {% else %}
+        <h1 class="text-center text-muted">No se encontraron calificaciones registradas.</h1>
+    {% endif %}
+
+    <!-- Enlace al historial académico -->
+    <div class="text-center mt-4">
+        <a href="{{ url_for('historial_academico') }}" class="btn btn-info">Ver Historial Académico</a>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script type="application/json" id="calificaciones-data">{{ calificaciones | tojson }}</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calificaciones = JSON.parse(document.getElementById('calificaciones-data').textContent || '[]');
+    if (calificaciones.length === 0) return;
+
+    var alumnoId = '{{ session["user_id"] }}';
+    var labels = calificaciones.map(c => c.materia_nombre);
+    var data = calificaciones.map(c => c.calificacion);
+
+    function getRandomColor() {
+        return "#" + Math.floor(Math.random() * 16777215).toString(16);
+    }
+
+    var storedColors = JSON.parse(localStorage.getItem('calificacionesColors_' + alumnoId)) || [];
+    if (storedColors.length === 0) {
+        storedColors = labels.map(() => getRandomColor());
+        localStorage.setItem('calificacionesColors_' + alumnoId, JSON.stringify(storedColors));
+    }
+
+    var backgroundColors = storedColors.map(color => color + '80');
+    var borderColors = storedColors;
+
+    var ctx = document.getElementById('calificacionesChart').getContext('2d');
+    var chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Calificaciones',
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
+                borderWidth: 1,
+                data: data
+            }]
+        },
+        options: {
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    // Cargar colores en inputs
+    calificaciones.forEach(function(_, index) {
+        var colorInput = document.getElementById('color-' + (index + 1));
+        if (storedColors[index]) {
+            colorInput.value = storedColors[index];
+        }
+    });
+
+    // Guardar colores seleccionados
+    document.getElementById('colorForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        var backgroundColors = [], borderColors = [], selectedColors = [];
+        calificaciones.forEach(function(_, index) {
+            var color = document.getElementById('color-' + (index + 1)).value;
+            backgroundColors.push(color + '80');
+            borderColors.push(color);
+            selectedColors.push(color);
+        });
+        chart.data.datasets[0].backgroundColor = backgroundColors;
+        chart.data.datasets[0].borderColor = borderColors;
+        chart.update();
+        localStorage.setItem('calificacionesColors_' + alumnoId, JSON.stringify(selectedColors));
+    });
+});
+</script>
+</body>
+</html>

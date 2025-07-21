@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Materias Duplicadas</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center">Gestionar Materias Duplicadas</h1>
+
+        <form method="POST">
+            {% if materias_duplicadas %}
+                <div class="alert alert-warning">
+                    <strong>Atención:</strong> Estas materias tienen duplicados. Selecciona las que deseas eliminar.
+                </div>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Licenciatura</th>
+                            <th>Semestre</th>
+                            <th>Seleccionar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for materia in materias_duplicadas %}
+                        <tr>
+                            <td>{{ materia['nombre'] }}</td>
+                            <td>{{ materia['licenciatura'] }}</td>
+                            <td>{{ materia['semestre'] }}°</td>
+                            <td>
+                                <input type="checkbox" name="materias_eliminar" value="{{ materia['id'] }}">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <button type="submit" class="btn btn-danger">Eliminar seleccionadas</button>
+            {% else %}
+                <div class="alert alert-success text-center">
+                    No se encontraron materias duplicadas. ¡Todo está en orden!
+                </div>
+            {% endif %}
+        </form>
+
+        <a href="{{ url_for('gestion_materias') }}" class="btn btn-primary mt-3">Volver a la gestión de materias</a>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

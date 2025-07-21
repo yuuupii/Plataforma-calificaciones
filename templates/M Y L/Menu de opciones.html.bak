@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang"es">
+	<head>
+		<title>MENU</title>
+		<meta charset="iso-8859-1"/>
+		<meta name="description" content="ejemplo de html5/">
+		<meta name="keywords" content="HTML5, CSS3, Javaescript"/>
+		<link rel="stylesheet" href="A.css">
+	</head>
+	<div id="I">
+		<td><button><a href="file:///C:/Users/PC-06/Desktop/M%20Y%20L/comida%20corrida.html">COMIDA CORRIDA</td></button></a>
+		
+		<td><button><a href="file:///C:/Users/PC-06/Desktop/M%20Y%20L/libros.html"></td>LIBROS</button></a>
+		
+		<td><button><a href="file:///C:/Users/PC-06/Desktop/M%20Y%20L/comida%20saludable.html">COMIDA SALUDABLE</td></button></a>
+		
+		<td><button><a href="file:///C:/Users/PC-06/Desktop/M%20Y%20L/turismo.html">TURISMO</td></button></a>
+		
+		<td><button><a href="file:///C:/Users/PC-06/Desktop/M%20Y%20L/M%20y%20L.html">PRINCIPAL</td></button></a>
+	</div>

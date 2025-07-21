@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plantas vs Zombis - Minijuego</title>
+  <style>
+    /* Estilos generales y del área de juego */
+    body {
+      background-color: #5a9f38;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    #game {
+      width: 600px;
+      height: 400px;
+      background-color: #3a3a3a;
+      margin: auto;
+      position: relative;
+      overflow: hidden;
+      border: 2px solid #222;
+    }
+    /* La planta (Pea Shooter) se posiciona inicialmente a 10px desde abajo y 20px desde la izquierda.
+       Al moverla, se actualizará su propiedad "bottom". */
+    .peashooter {
+      width: 50px;
+      height: 50px;
+      background-color: green;
+      position: absolute;
+      bottom: 10px;
+      left: 20px;
+      border: 2px solid darkgreen;
+      animation: idleBounce 2s ease-in-out infinite;
+    }
+    @keyframes idleBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+    /* Estilo y animación del zombi */
+    .zombie {
+      width: 50px;
+      height: 50px;
+      background-color: red;
+      background-repeat: no-repeat;
+      background-size: cover;
+      position: absolute;
+      top: 150px;
+      left: 600px; /* Inicia en el borde derecho */
+      border: 2px solid darkred;
+      animation: zombieWalk 15s linear infinite, zombieSprite 1s steps(4) infinite;
+    }
+    @keyframes zombieWalk {
+      0%   { left: 600px; }
+      100% { left: -50px; }
+    }
+    @keyframes zombieSprite {
+      0%   { background-position: 0 0; }
+      100% { background-position: -200px 0; }
+    }
+    /* Estilo y animación del guisante */
+    .pea {
+      width: 10px;
+      height: 10px;
+      background-color: yellow;
+      position: absolute;
+      border-radius: 50%;
+      animation: peaGlow 1s infinite alternate;
+    }
+    @keyframes peaGlow {
+      from { box-shadow: 0 0 5px yellow; }
+      to   { box-shadow: 0 0 20px yellow; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Plantas vs Zombis</h1>
+  <p>SPACE para disparar y las flechas ARRIBA/ABAJO para mover la planta.</p>
+  <div id="game">
+    <!-- Se asigna un id al Pea Shooter para manipularlo -->
+    <div id="plant" class="peashooter"></div>
+    <div class="zombie"></div>
+  </div>
+  <script>
+    // Listener para las teclas: SPACE dispara y las flechas mueven la planta.
+    document.addEventListener('keydown', function(event) {
+      if (event.code === 'Space') {
+        shootPea();
+      } else if (event.code === 'ArrowUp') {
+        movePlant('up');
+      } else if (event.code === 'ArrowDown') {
+        movePlant('down');
+      }
+    });
+
+    // Función para mover la planta verticalmente.
+    function movePlant(direction) {
+      const plant = document.getElementById('plant');
+      // Obtenemos la propiedad "bottom" actual (en píxeles)
+      let currentBottom = parseInt(window.getComputedStyle(plant).bottom);
+      const step = 5; // cantidad de píxeles a mover
+      let newBottom;
+      if (direction === 'up') {
+        newBottom = currentBottom + step;
+      } else if (direction === 'down') {
+        newBottom = currentBottom - step;
+      }
+      // La planta no debe salirse del área de juego:
+      // Mínimo: 0; Máximo: 400 (altura del contenedor) - 50 (altura de la planta)
+      newBottom = Math.max(0, Math.min(newBottom, 400 - plant.offsetHeight));
+      plant.style.bottom = newBottom + 'px';
+    }
+
+    // Función para disparar un guisante desde la posición actual de la planta.
+    function shootPea() {
+      const pea = document.createElement('div');
+      pea.className = 'pea';
+      const game = document.getElementById('game');
+      const plant = document.getElementById('plant');
+      
+      // Calculamos la posición de disparo en base a la ubicación de la planta.
+      // Obtenemos el valor "bottom" y el alto de la planta:
+      let plantBottom = parseInt(window.getComputedStyle(plant).bottom);
+      let plantHeight = plant.offsetHeight;
+      // En el contenedor el eje vertical se mide desde el tope (0) hacia abajo.
+      // Por ello, la posición "top" para el guisante será:
+      let spawnTop = game.clientHeight - (plantBottom + plantHeight / 2);
+      
+      // El disparo se realizará desde el extremo derecho de la planta.
+      let spawnLeft = plant.offsetLeft + plant.offsetWidth;
+      
+      pea.style.left = spawnLeft + "px";
+      pea.style.top = spawnTop + "px";
+      game.appendChild(pea);
+      
+      // Movimiento horizontal del guisante hacia la derecha.
+      let peaInterval = setInterval(() => {
+        let currentLeft = parseInt(pea.style.left);
+        if (currentLeft > game.clientWidth) {
+          pea.remove();
+          clearInterval(peaInterval);
+        } else {
+          pea.style.left = (currentLeft + 5) + 'px';
+        }
+      }, 20);
+    }
+  </script>
+</body>
+</html>

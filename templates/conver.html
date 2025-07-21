@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Convertidor de mililitros a Litros</title>
+  <style>
+    body {
+      border:1;
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .limonada {
+      max-width: 400px;
+      margin: auto;
+    }
+    label, select, input, button {
+      display: block;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    button {
+      background-color: #1436fc;
+      color: rgb(221, 255, 0);
+      border: 2;
+      border-color: chocolate;
+      padding: 10px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #ff0000;
+    }
+    .result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="limonada">
+    <h1>Convertidor de Longitud y Peso</h1>
+    <h3>(Sistema Métrico Decimal)</h3>
+
+    <!-- Selector de tipo de conversión -->
+    <label for="tipo">Selecciona el tipo de conversión:</label>
+    <select id="tipo">
+      <option value="longitud">Longitud</option>
+      <option value="peso">Peso</option>
+      <option value="peso">Volumen</option>
+    </select>
+
+    <!-- Selector de unidad inicial -->
+    <label for="unidad-inicial">Selecciona la unidad inicial:</label>
+    <select id="unidad-inicial">
+      <!-- Opciones se llenan dinámicamente -->
+    </select>
+
+    <!-- Selector de unidad final -->
+    <label for="unidad-final">Selecciona la unidad final:</label>
+    <select id="unidad-final">
+      <!-- Opciones se llenan dinámicamente -->
+    </select>
+
+    <!-- Entrada del valor -->
+    <label for="valor">Ingresa el valor a convertir:</label>
+    <input type="number" id="valor" placeholder="Ingresa un número entero. No acepto los 0" required>
+
+    <!-- Botón para realizar la conversión -->
+    <button onclick="convertir()">Convertir</button>
+
+    <!-- Resultado -->
+    <div class="result" id="resultado"></div>
+  </div>
+
+  <script>
+    // Definición de unidades y sus factores de conversión
+    const unidades = {
+      longitud: {
+        metro: 1,
+        centimetro: 100,
+        milimetro: 1000,
+        kilometro: 0.001
+      },
+      peso: {
+        kilogramo: 1,
+        gramo: 1000,
+        miligramo: 1000000,
+        tonelada: 0.001
+      },
+      Volumen: {
+        metro_cubico: 1,
+        centimetro: 1000,
+        milimetro: 1000000,
+        decimetro: 0.001
+      }
+    };
+
+    // Función para cargar las opciones de unidades según el tipo seleccionado
+    function cargarUnidades() {
+      const tipo = document.getElementById('tipo').value;
+      const opciones = Object.keys(unidades[tipo]);
+      const unidadInicial = document.getElementById('unidad-inicial');
+      const unidadFinal = document.getElementById('unidad-final');
+
+      // Limpiar opciones anteriores
+      unidadInicial.innerHTML = '';
+      unidadFinal.innerHTML = '';
+
+      // Agregar nuevas opciones
+      opciones.forEach(opcion => {
+        unidadInicial.innerHTML += `<option value="${opcion}">${opcion}</option>`;
+        unidadFinal.innerHTML += `<option value="${opcion}">${opcion}</option>`;
+      });
+    }
+
+    // Cargar unidades al cargar la página
+    document.getElementById('tipo').addEventListener('change', cargarUnidades);
+    cargarUnidades(); // Carga inicial
+
+    // Función para realizar la conversión
+    function convertir() {
+      // Obtener valores del formulario
+      const tipo = document.getElementById('tipo').value;
+      const unidadInicial = document.getElementById('unidad-inicial').value;
+      const unidadFinal = document.getElementById('unidad-final').value;
+      const valor = parseFloat(document.getElementById('valor').value);
+
+      // Validar entrada
+      if (isNaN(valor) || valor <= 0) {
+        document.getElementById('resultado').textContent =
+          'Por favor, ingresa un valor válido mayor que cero.';
+        return;
+      }
+
+      // Realizar la conversión
+      const factorInicial = unidades[tipo][unidadInicial];
+      const factorFinal = unidades[tipo][unidadFinal];
+      const resultado = (valor / factorInicial) * factorFinal;
+
+      // Mostrar el resultado
+      document.getElementById('resultado').textContent = 
+        `${valor} ${unidadInicial} = ${resultado.toFixed(4)} ${unidadFinal}`;
+    }
+  </script>
+</body>
+</html>

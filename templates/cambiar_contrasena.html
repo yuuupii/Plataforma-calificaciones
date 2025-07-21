@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cambiar Contraseña</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-5">
+  <h2 class="text-center mb-4">🔐 Cambiar Contraseña</h2>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="alert alert-info">
+        {{ messages[0] }}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST" class="shadow p-4 rounded bg-light">
+    <div class="form-group">
+      <label for="actual">Contraseña actual:</label>
+      <input type="password" id="actual" name="contrasena_actual" class="form-control" required>
+    </div>
+
+    <div class="form-group">
+      <label for="nueva">Nueva contraseña:</label>
+      <input type="password" id="nueva" name="nueva_contrasena" class="form-control" required>
+    </div>
+
+    <div class="form-group">
+      <label for="confirmar">Confirmar nueva contraseña:</label>
+      <input type="password" id="confirmar" name="confirmar_contrasena" class="form-control" required>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-block">Actualizar contraseña</button>
+    <a href="{{ url_for('menu_docente') }}" class="btn btn-secondary btn-block mt-2">Volver al menú</a>
+  </form>
+</div>
+</body>
+</html>

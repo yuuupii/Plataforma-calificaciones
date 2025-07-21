@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>CuboAliens: Encuentros del Cubiverso</title>
+  <style>
+    body {
+      margin: 0;
+      background: #0e0e1c;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    #intro, #gameArea, #challengeBox, #shopBox, .panelZona, .panelNarrativo {
+      display: none;
+    }
+
+    #intro {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    #introBox {
+      width: 90%;
+      max-width: 600px;
+      margin: auto;
+      background: #252849;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px #00ffe0;
+    }
+
+    #heroAlien {
+      width: 120px;
+      height: 120px;
+      background: #00ffe0;
+      border-radius: 10px;
+      margin: 0 auto 20px auto;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 8px 15px;
+      background: #00ffe0;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      color: #151a2b;
+    }
+
+    #gameArea {
+      width: 1000px;
+      height: 600px;
+      margin: 20px auto;
+      background-color: #1c1f3a;
+      position: relative;
+      border: 3px solid #00ffe0;
+      overflow: hidden;
+    }
+
+    #alien {
+      width: 40px;
+      height: 40px;
+      background-color: #00ffe0;
+      position: absolute;
+      top: 100px;
+      left: 100px;
+      border-radius: 5px;
+      z-index: 2;
+    }
+
+    .property {
+      position: absolute;
+      background: #62ff96aa;
+      border: 2px dashed white;
+    }
+
+    .owned {
+      background: #3aef7a !important;
+      border-style: solid !important;
+    }
+
+    .zone-lock {
+      position: absolute;
+      background: rgba(200, 0, 0, 0.4);
+      color: white;
+      font-weight: bold;
+      border: 2px dashed #ff4747;
+      border-radius: 6px;
+      text-align: center;
+      padding-top: 35px;
+      box-sizing: border-box;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    #challengeBox, #shopBox, .panelZona, .panelNarrativo {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #252849;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #00ffe0;
+      text-align: center;
+      z-index: 20;
+    }
+
+    .pozo {
+      background: radial-gradient(circle, #00e1ff 0%, #1c1f3a 100%);
+      border: 2px dashed cyan;
+      animation: parpadea 1s infinite alternate;
+    }
+
+    @keyframes parpadea {
+      from { box-shadow: 0 0 10px cyan; }
+      to   { box-shadow: 0 0 25px white; }
+    }
+
+    input {
+      padding: 6px;
+      margin-top: 10px;
+      width: 100px;
+      font-size: 1em;
+      text-align: center;
+    }
+
+    /* 🎭 Cubos narradores en zona superior */
+    .dialogo {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #252849;
+      border: 2px solid #00ffe0;
+      border-radius: 12px;
+      padding: 15px 20px;
+      width: 700px;
+      box-shadow: 0 0 15px #00ffe0;
+      z-index: 30;
+      animation: aparecer 1s ease-out;
+    }
+
+    @keyframes aparecer {
+      from { opacity: 0; transform: translate(-50%, -20px); }
+      to { opacity: 1; transform: translate(-50%, 0px); }
+    }
+
+    .cubox {
+      width: 60px;
+      height: 60px;
+      display: inline-block;
+      margin: 10px;
+      border-radius: 5px;
+    }
+
+    .cubox.cubix { background-color: #ffcc00; }
+    .cubox.prisma { background-color: #ff70d1; }
+    .cubox.tu { background-color: #00ffe0; }
+
+    .cubox-label {
+      font-weight: bold;
+      margin-top: 4px;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+    <!-- Panel narrativo inicial -->
+<div id="intro">
+  <div id="heroAlien"></div>
+  <div id="introBox">
+    <p id="storyText"></p>
+    <button onclick="nextPanel()">Siguiente</button>
+  </div>
+</div>
+
+<!-- Zona de juego -->
+<div id="gameArea">
+  <div id="alien"></div>
+
+  <!-- Zonas bloqueadas -->
+  <div class="zone-lock" id="zona2" style="top:0px; left:340px; width:330px; height:600px;">
+    🔒 Zona 2 — Requiere 30 cubocréditos
+  </div>
+  <div class="zone-lock" id="zona3" style="top:0px; left:670px; width:330px; height:600px;">
+    🔒 Zona 3 — Requiere 60 cubocréditos
+  </div>
+
+  <!-- Pozo de los Deseos — ubicado abajo a la izquierda -->
+  <div id="pozo" class="pozo" style="bottom:20px; left:20px; width:80px; height:80px; position:absolute; border-radius:50%; z-index:1;" title="Pozo de los Deseos">
+  </div>
+
+  <!-- Contador de créditos -->
+  <div style="position:absolute; top:10px; left:10px; font-weight: bold;">
+    💰 Cubocréditos: <span id="score">0</span>
+  </div>
+
+  <!-- Botón de tienda -->
+  <button onclick="abrirTienda()" style="position:absolute; top:10px; right:10px;
+    padding: 6px 15px; background:#00ffe0; border:none; border-radius:5px;
+    font-weight:bold; cursor:pointer;">🛒 Tienda</button>
+</div>
+
+<!-- Panel de reto matemático -->
+<div id="challengeBox">
+  <p id="challengeText"></p>
+  <input type="number" id="userInput" min="0" max="9999" step="1" />
+  <br />
+  <button onclick="verifyAnswer()">Verificar</button>
+</div>
+
+<!-- Tienda cúbica -->
+<div id="shopBox">
+  <h3>🛍️ Tienda Cúbica</h3>
+  <p>Selecciona una mejora:</p>
+  <button onclick="comprar('velocidad')">🏃‍♂️ Velocidad +5 (15💰)</button><br><br>
+  <button onclick="comprar('color')">🎨 Cambiar color (20💰)</button><br><br>
+  <button onclick="comprar('teleport')">🌀 Teletransportarse (25💰)</button><br><br>
+  <button onclick="cerrarTienda()">Cerrar</button>
+</div>
+
+<!-- Panel narrativo Zona 2 -->
+<div id="panelZona2" class="dialogo panelNarrativo" style="max-height: 360px; overflow-y: auto;">
+  <div style="display:flex; justify-content:center; align-items:center;">
+    <div class="cubox cubix"></div>
+    <div style="margin: 0 20px; text-align: left;">
+      <p><strong>Cubix:</strong> Caminante, llegaste a los bordes de una aldea olvidada: <em>Prisma</em>. Aquí trazamos las líneas que daban forma a las ideas.</p>
+      <p><strong>Prisma:</strong> Después del Estallido del Eje, fuimos atrapados tras una barrera de cubocréditos. Solo los dignos pueden cruzarla resolviendo aquello que da vida a Arithmós: los cálculos.</p>
+      <p><strong>Cubix:</strong> El Pozo que encontraste es más que piedra. Guarda memorias codificadas... y voluntad propia. Cada respuesta activa fragmentos dormidos de nuestro pasado.</p>
+      <p><strong>Prisma:</strong> Pero cuidado: hay otros cubos que usaron el Pozo... y olvidaron quiénes eran. Las formas que dominaron... los dominaron a ellos.</p>
+    </div>
+    <div class="cubox prisma"></div>
+  </div>
+  <p style="margin-top: 15px;"><em>Has despertado el plano oculto de la Aldea Prisma. Y esto... apenas comienza.</em></p>
+  <button onclick="cerrarPanelZona('panelZona2')">🧠 Seguir explorando</button>
+</div>
+
+<!-- Panel narrativo Zona 3 -->
+<div id="panelZona3" class="dialogo panelNarrativo" style="max-height: 400px; overflow-y: auto;">
+  <div style="display:flex; justify-content:center; align-items:center;">
+    <div class="cubox cubix"></div>
+    <div style="margin: 0 20px; text-align: left;">
+      <p><strong>Cubix:</strong> Este territorio... nunca fue conquistado, solo observado. Las figuras aquí no tienen nombre, pero sus formas... respiran.</p>
+      <p><strong>Prisma:</strong> Se rumorea que aquí apareció el Cubo Primario. El primero en calcular una sombra. El que trazó los límites de lo visible... y de lo imposible.</p>
+      <p><strong>Voz distorsionada:</strong> Has cruzado las zonas. Pero no has resuelto el Cubigrama. Los secretos de la Aldea del Vector, de la Nación de los Irracionales, de la Torre Pi... todos convergen aquí.</p>
+      <p><strong>?</strong> Una fórmula fue escondida. Una que puede abrir todas las zonas... o colapsar la lógica del mundo. ¿Te atreverás a buscarla?</p>
+    </div>
+    <div class="cubox prisma"></div>
+  </div>
+  <p style="margin-top: 12px;"><em>⚠️ Has activado fragmentos ocultos del Cubiverso. Algunos secretos han sido revelados... otros, aún duermen bajo algoritmos olvidados.</em></p>
+  <button onclick="cerrarPanelZona('panelZona3')">🌌 Cerrar panel</button>
+</div>
+
+<!-- 🧬 Panel secreto: El Cubigrama -->
+<div id="cubigramaPanel" class="dialogo panelNarrativo" style="max-height: 420px; overflow-y: auto; display: none;">
+  <div style="text-align:center;">
+    <h3 style="color: cyan;">🧩 El Cubigrama</h3>
+    <p><em>Has alcanzado 90 cubocréditos. La lógica se curva y una grieta se abre...</em></p>
+  </div>
+
+  <div style="margin: 15px 0; text-align: left;">
+    <p>Un patrón antiguo brilla desde el fondo del tablero. Es un símbolo que nunca viste antes: una espiral cúbica envuelta en triángulos imposibles.</p>
+    <p>Una voz fragmentada resuena como un eco lejano:</p>
+    <p style="font-style: italic; color: #aaa;">
+      “Bienvenido, viajero. Has conquistado formas, descifrado ejes y restaurado memoria… pero aún no conoces la ecuación de la ruptura.”</p>
+    <p>El Cubigrama ha comenzado. Cada respuesta correcta desbloquea una palabra. Cada error, borra una huella. Nadie lo ha completado antes. Algunos lo llaman prueba... otros, cerradura.</p>
+        <p>Entre líneas curvas aparece una inscripción:</p>
+    <p style="font-family: 'Courier New', monospace; background: #1e243a; padding: 10px; border-radius: 6px;">
+      Fórmula Espectral = ∑(zonaᵢ · respuestaⁱ) mod ∞
+    </p>
+    <p style="color: #ffd700;">Sabías resolver... pero ahora, ¿puedes reconstruir?</p>
+    <p><strong>La historia no termina aquí, pero desde aquí puedes empezarla de nuevo.</strong></p>
+    <p><em>Al fondo del pozo… hay más de una sombra observándote.</em></p>
+  </div>
+
+  <button onclick="document.getElementById('cubigramaPanel').style.display='none'">🔒 Cerrar el Cubigrama</button>
+</div>
+
+<script>
+  let index = 0, x = 100, y = 100, step = 10;
+  let score = 0, streak = 0;
+  let expectedAnswer = 0, isPozo = false, currentProp = null;
+  const owned = new Set(), zonasNarradas = new Set();
+
+  const alien = document.getElementById("alien");
+  const intro = document.getElementById("intro");
+  const gameArea = document.getElementById("gameArea");
+  const challengeBox = document.getElementById("challengeBox");
+  const storyText = document.getElementById("storyText");
+  const shopBox = document.getElementById("shopBox");
+  const scoreDisplay = document.getElementById("score");
+  const zone2 = document.getElementById("zona2");
+  const zone3 = document.getElementById("zona3");
+  const pozo = document.getElementById("pozo");
+
+  const story = [
+    "En Cubonia vivían cubos inteligentes que amaban los cálculos.",
+    "Pero sus errores geométricos causaron un desastre planetario.",
+    "Viajaron a Arithmós, un planeta donde las formas sí importan.",
+    "¡Ayuda a reclamar su nuevo hogar resolviendo desafíos matemáticos!"
+  ];
+
+  const retosPozo = [
+    { texto: "Área de cuadrado de lado 25", resultado: 625 },
+    { texto: "Perímetro de rectángulo 10x20", resultado: 60 },
+    { texto: "Área de triángulo base 10 altura 12", resultado: 60 },
+    { texto: "Área de rombo (D=10, d=6)", resultado: 30 },
+    { texto: "Área de círculo radio 7 (usa 154 aprox)", resultado: 154 },
+    { texto: "Perímetro de cuadrado de lado 22", resultado: 88 }
+  ];
+
+  const props = [
+    { id: "prop1", x: 100, y: 100, w: 100, h: 100, valor: 100, reto: "Área de cuadrado de lado 10" },
+    { id: "prop2", x: 200, y: 300, w: 120, h: 60, valor: 360, reto: "Área de rectángulo 12x30" },
+    { id: "prop3", x: 400, y: 100, w: 80, h: 80, valor: 6400, reto: "Área de cuadrado de lado 80", zona: 2 },
+    { id: "prop4", x: 500, y: 300, w: 100, h: 90, valor: 380, reto: "Perímetro rectángulo 100x90", zona: 2 },
+    { id: "prop5", x: 720, y: 200, w: 60, h: 60, valor: 240, reto: "Perímetro cuadrado lado 60", zona: 3 }
+  ];
+
+  function nextPanel() {
+    if (index < story.length) {
+      storyText.textContent = story[index++];
+    } else {
+      intro.style.display = "none";
+      gameArea.style.display = "block";
+      crearProps();
+      iniciarJuego();
+    }
+  }
+
+  function crearProps() {
+    props.forEach(p => {
+      const div = document.createElement("div");
+      div.classList.add("property");
+      div.id = p.id;
+      div.style.top = p.y + "px";
+      div.style.left = p.x + "px";
+      div.style.width = p.w + "px";
+      div.style.height = p.h + "px";
+      gameArea.appendChild(div);
+    });
+  }
+
+  // 🚀 Teletransporte por doble clic en zonas desbloqueadas
+zone2.addEventListener("dblclick", () => {
+  if (score >= 30) {
+    x = 350 + Math.random() * 300;
+    y = 100 + Math.random() * 400;
+    alien.style.left = x + "px";
+    alien.style.top = y + "px";
+    alert("🌀 Has sido teletransportado a Zona 2");
+  }
+});
+
+zone3.addEventListener("dblclick", () => {
+  if (score >= 60) {
+    x = 680 + Math.random() * 280;
+    y = 100 + Math.random() * 400;
+    alien.style.left = x + "px";
+    alien.style.top = y + "px";
+    alert("🌀 Has sido teletransportado a Zona 3");
+  }
+});
+
+  function iniciarJuego() {
+    document.addEventListener("keydown", e => {
+      if (document.activeElement.tagName === "INPUT") return;
+      if (e.key === "ArrowUp") y = Math.max(0, y - step);
+      if (e.key === "ArrowDown") y = Math.min(560, y + step);
+      if (e.key === "ArrowLeft") x = Math.max(0, x - step);
+      if (e.key === "ArrowRight") x = Math.min(960, x + step);
+      alien.style.top = y + "px";
+      alien.style.left = x + "px";
+      detectarColision();
+    });
+  }
+
+  function detectarColision() {
+    const alienRect = alien.getBoundingClientRect();
+    const pozoRect = pozo.getBoundingClientRect();
+    if (superponen(alienRect, pozoRect)) return mostrarRetoPozo();
+
+    props.forEach(p => {
+      if (owned.has(p.id)) return;
+      if (p.zona === 2 && score < 30) return;
+      if (p.zona === 3 && score < 60) return;
+      const rect = document.getElementById(p.id).getBoundingClientRect();
+      if (superponen(alienRect, rect)) mostrarRetoPropiedad(p.id);
+    });
+  }
+
+  function superponen(a, b) {
+    return a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom;
+  }
+
+  function mostrarRetoPozo() {
+    const r = retosPozo[Math.floor(Math.random() * retosPozo.length)];
+    expectedAnswer = r.resultado;
+    document.getElementById("challengeText").textContent = "💫 Pozo: " + r.texto;
+    document.getElementById("userInput").value = "";
+    challengeBox.style.display = "block";
+    isPozo = true;
+  }
+
+  function mostrarRetoPropiedad(id) {
+    const p = props.find(p => p.id === id);
+    currentProp = p.id;
+    expectedAnswer = p.valor;
+    document.getElementById("challengeText").textContent = p.reto;
+    document.getElementById("userInput").value = "";
+    challengeBox.style.display = "block";
+    isPozo = false;
+  }
+</script>
+<script>
+  function verifyAnswer() {
+    const val = parseInt(document.getElementById("userInput").value.trim());
+    if (val === expectedAnswer) {
+      streak++;
+      let bonus = streak === 2 ? 5 : streak === 3 ? 10 : streak >= 4 ? 15 : 0;
+      const total = 10 + bonus;
+      score += total;
+      scoreDisplay.textContent = score;
+
+      let msg = `✅ ¡Correcto! +${total} cubocréditos`;
+      if (bonus > 0) msg += ` (combo x${streak} 🔥)`;
+
+      if (!isPozo && currentProp) {
+        document.getElementById(currentProp).classList.add("owned");
+        owned.add(currentProp);
+        msg += `\nPropiedad adquirida.`;
+      }
+
+      alert(msg);
+      actualizarZonas();
+    } else {
+      alert("❌ Incorrecto. Se reinicia tu racha.");
+      streak = 0;
+    }
+    challengeBox.style.display = "none";
+  }
+
+ function actualizarZonas() {
+  if (score >= 30 && zone2.style.display !== "none") {
+    zone2.style.display = "none";
+    if (!zonasNarradas.has("zona2")) {
+      mostrarNarrativa("panelZona2");
+      zonasNarradas.add("zona2");
+    }
+  }
+
+  if (score >= 60 && zone3.style.display !== "none") {
+    zone3.style.display = "none";
+    if (!zonasNarradas.has("zona3")) {
+      mostrarNarrativa("panelZona3");
+      zonasNarradas.add("zona3");
+    }
+  }
+
+  // ✨ Nuevo: activar Cubigrama al alcanzar 90 puntos
+  if (score >= 90 && !zonasNarradas.has("cubigrama")) {
+    document.getElementById("cubigramaPanel").style.display = "block";
+    zonasNarradas.add("cubigrama");
+  }
+}
+
+  function mostrarNarrativa(id) {
+    document.querySelectorAll(".panelNarrativo").forEach(p => p.style.display = "none");
+    const panel = document.getElementById(id);
+    if (panel) panel.style.display = "block";
+  }
+
+  function cerrarPanelZona(id) {
+    const panel = document.getElementById(id);
+    if (panel) panel.style.display = "none";
+  }
+
+  function abrirTienda() {
+    shopBox.style.display = "block";
+  }
+
+  function cerrarTienda() {
+    shopBox.style.display = "none";
+  }
+
+  function comprar(tipo) {
+    if (tipo === "velocidad" && score >= 15) {
+      step += 5;
+      score -= 15;
+      alert("🏃‍♂️ ¡Velocidad aumentada!");
+    } else if (tipo === "color" && score >= 20) {
+      const colores = ["#ff70d1", "#00ffe0", "#ffd700", "#c084fc", "#4ade80", "#facc15"];
+      const nuevoColor = colores[Math.floor(Math.random() * colores.length)];
+      alien.style.backgroundColor = nuevoColor;
+      score -= 20;
+      alert("🎨 ¡Color cambiado!");
+    } else if (tipo === "teleport" && score >= 25) {
+      x = Math.floor(Math.random() * 960);
+      y = Math.floor(Math.random() * 560);
+      alien.style.left = x + "px";
+      alien.style.top = y + "px";
+      score -= 25;
+      alert("🌀 ¡Teleportado!");
+    } else {
+      alert("⛔ No tienes suficientes cubocréditos.");
+    }
+    scoreDisplay.textContent = score;
+    actualizarZonas();
+    cerrarTienda();
+  }
+
+  intro.style.display = "block";
+  nextPanel();
+</script>
+</body>
+</html>

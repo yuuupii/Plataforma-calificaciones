@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Alumnos</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Gestión de Alumnos</h1>
+        
+        <h2>Añadir Alumno</h2>
+        <form action="{{ url_for('datos_alumnos') }}" method="post" class="mb-4">
+            <div class="form-group">
+                <label for="nombre">Nombre del Alumno:</label>
+                <input type="text" id="nombre" name="nombre" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="matricula">Matrícula:</label>
+                <input type="text" id="matricula" name="matricula" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="licenciatura">Licenciatura:</label>
+                <select id="licenciatura" name="licenciatura" class="form-control" required>
+                    <option value="Matematicas">Licenciatura en Enseñanza y Aprendizaje de las Matemáticas</option>
+                    <option value="Primaria">Licenciatura en Primaria</option>
+                    <option value="Espanol">Licenciatura en Enseñanza y Aprendizaje del Español</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="semestre">Semestre:</label>
+                <select id="semestre" name="semestre" class="form-control" required>
+                    <option value="1">1° Semestre</option>
+                    <option value="2">2° Semestre</option>
+                    <option value="3">3° Semestre</option>
+                    <option value="4">4° Semestre</option>
+                    <option value="5">5° Semestre</option>
+                    <option value="6">6° Semestre</option>
+                    <option value="7">7° Semestre</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Añadir Alumno</button>
+        </form>
+        
+        <h2 class="mt-4">Lista de Alumnos</h2>
+        <div id="alumnos-por-licenciatura">
+            {% for licenciatura, alumnos_por_semestre in alumnos.items() %}
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">
+                        <a class="collapsed" data-toggle="collapse" href="#{{ licenciatura | replace(' ', '_') }}">
+                            {{ licenciatura }}
+                        </a>
+                    </h3>
+                </div>
+                <div id="{{ licenciatura | replace(' ', '_') }}" class="collapse">
+                    <div class="card-body">
+                        {% for semestre, alumnos in alumnos_por_semestre.items() %}
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="mb-0">
+                                    <a class="collapsed" data-toggle="collapse" href="#{{ licenciatura | replace(' ', '_') }}_{{ semestre }}">
+                                        Semestre {{ semestre }}
+                                    </a>
+                                </h4>
+                            </div>
+                            <div id="{{ licenciatura | replace(' ', '_') }}_{{ semestre }}" class="collapse">
+                                <div class="card-body">
+                                    <ul class="list-group">
+                                        {% for alumno in alumnos %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            {{ alumno.nombre }} ({{ alumno.licenciatura }} - {{ alumno.semestre }}°) - {{ alumno.email }}
+                                            <form action="{{ url_for('delete_alumno') }}" method="post" class="form-inline float-right">
+                                                <input type="hidden" name="id" value="{{ alumno.id }}">
+                                                <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                                            </form>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

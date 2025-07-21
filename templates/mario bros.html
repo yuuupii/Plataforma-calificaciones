@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matemáticas Bros</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #87CEEB;
+        }
+        canvas {
+            display: block;
+        }
+        .hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 20px;
+            z-index: 10;
+        }
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 40px;
+            display: none;
+        }
+        .input-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            z-index: 20;
+        }
+        .input-box input {
+            padding: 10px;
+            font-size: 18px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="hud" id="hud">Puntuación: 0</div>
+    <div class="game-over" id="gameOverScreen">¡Fin del Juego!<br>Puntuación Final: <span id="finalScore">0</span><br>Presiona R para reiniciar</div>
+    <div class="input-box" id="inputBox">
+        <p id="mathQuestion">¿Cuánto es 2 + 2?</p>
+        <input type="number" id="userAnswer" placeholder="Ingresa tu respuesta">
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const hud = document.getElementById("hud");
+        const gameOverScreen = document.getElementById("gameOverScreen");
+        const finalScoreElement = document.getElementById("finalScore");
+        const inputBox = document.getElementById("inputBox");
+        const mathQuestion = document.getElementById("mathQuestion");
+        const userAnswerInput = document.getElementById("userAnswer");
+
+        let keys = {};
+        let score = 0;
+        let isGameOver = false;
+        let currentEnemy = null;
+        let gamePaused = false;
+
+        // Jugador (Mario)
+        const player = {
+            x: 50,
+            y: canvas.height - 150,
+            width: 50,
+            height: 50,
+            speed: 5,
+            dy: 0,
+            jumpPower: -15,
+            gravity: 0.5,
+            isJumping: false
+        };
+
+        // Plataformas
+        const platforms = [
+            { x: 0, y: canvas.height - 50, width: canvas.width, height: 20 }, // Suelo
+            { x: 200, y: canvas.height - 150, width: 100, height: 20 },
+            { x: 400, y: canvas.height - 250, width: 100, height: 20 },
+            { x: 600, y: canvas.height - 350, width: 100, height: 20 }
+        ];
+
+        // Enemigos (Operaciones matemáticas)
+        const enemies = [];
+        const operations = ["+", "-", "*", "/"];
+
+        function generateEnemy() {
+            const operation = operations[Math.floor(Math.random() * operations.length)];
+            const num1 = Math.floor(Math.random() * 10) + 1;
+            const num2 = Math.floor(Math.random() * 10) + 1;
+            const correctAnswer = eval(`${num1} ${operation} ${num2}`);
+            const platform = platforms[Math.floor(Math.random() * platforms.length)];
+            enemies.push({
+                x: platform.x + Math.random() * (platform.width - 50),
+                y: platform.y - 50,
+                width: 50,
+                height: 50,
+                dx: -2,
+                operation: `${num1} ${operation} ${num2}`,
+                answer: correctAnswer
+            });
+        }
+
+        // Dibujar jugador (Mario)
+        function drawPlayer() {
+            ctx.fillStyle = "red";
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            // Dibujar sombrero de Mario
+            ctx.fillStyle = "brown";
+            ctx.fillRect(player.x + 10, player.y - 10, 30, 10);
+            ctx.fillStyle = "red";
+            ctx.fillRect(player.x + 15, player.y - 20, 20, 10);
+        }
+
+        // Dibujar plataformas
+        function drawPlatforms() {
+            ctx.fillStyle = "brown";
+            platforms.forEach(platform => {
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+            });
+        }
+
+        // Dibujar enemigos
+        function drawEnemies() {
+            enemies.forEach(enemy => {
+                ctx.fillStyle = "green";
+                ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+
+                // Mostrar operación en el enemigo
+                ctx.fillStyle = "white";
+                ctx.font = "14px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(enemy.operation, enemy.x + enemy.width / 2, enemy.y + enemy.height / 2 + 5);
+            });
+        }
+
+        // Actualizar jugador
+        function updatePlayer() {
+            if (!gamePaused) {
+                if (keys["ArrowRight"]) player.x += player.speed;
+                if (keys["ArrowLeft"]) player.x -= player.speed;
+
+                player.dy += player.gravity;
+                player.y += player.dy;
+
+                // Colisión con plataformas
+                platforms.forEach(platform => {
+                    if (
+                        player.x < platform.x + platform.width &&
+                        player.x + player.width > platform.x &&
+                        player.y + player.height >= platform.y &&
+                        player.y + player.height <= platform.y + platform.height
+                    ) {
+                        player.y = platform.y - player.height;
+                        player.dy = 0;
+                        player.isJumping = false;
+                    }
+                });
+
+                // Evitar que el jugador salga de la pantalla
+                if (player.x < 0) player.x = 0;
+                if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+                if (player.y + player.height > canvas.height) {
+                    player.y = canvas.height - player.height;
+                    player.dy = 0;
+                    player.isJumping = false;
+                }
+            }
+        }
+
+        // Actualizar enemigos
+        function updateEnemies() {
+            if (!gamePaused) {
+                enemies.forEach((enemy, index) => {
+                    enemy.x += enemy.dx;
+
+                    // Invertir dirección si choca con los bordes de la plataforma
+                    const platform = platforms.find(p =>
+                        enemy.x >= p.x && enemy.x + enemy.width <= p.x + p.width && enemy.y + enemy.height === p.y
+                    );
+                    if (!platform || enemy.x <= platform.x || enemy.x + enemy.width >= platform.x + platform.width) {
+                        enemy.dx *= -1;
+                    }
+
+                    // Colisión con el jugador
+                    if (
+                        player.x < enemy.x + enemy.width &&
+                        player.x + player.width > enemy.x &&
+                        player.y < enemy.y + enemy.height &&
+                        player.y + player.height > enemy.y
+                    ) {
+                        currentEnemy = enemy;
+                        showInputBox();
+                    }
+                });
+            }
+        }
+
+        // Manejar saltos
+        function handleJump() {
+            if (!gamePaused && !player.isJumping && keys["ArrowUp"]) {
+                player.dy = player.jumpPower;
+                player.isJumping = true;
+            }
+        }
+
+        // Generar enemigos periódicamente
+        function spawnEnemies() {
+            if (!isGameOver && Math.random() < 0.02) {
+                generateEnemy();
+            }
+        }
+
+        // Mostrar puntaje
+        function updateHUD() {
+            hud.textContent = `Puntuación: ${score}`;
+        }
+
+        // Finalizar juego
+        function endGame() {
+            isGameOver = true;
+            gameOverScreen.style.display = "block";
+            finalScoreElement.textContent = score;
+        }
+
+        // Reiniciar juego
+        function restartGame() {
+            isGameOver = false;
+            gameOverScreen.style.display = "none";
+            score = 0;
+            enemies.length = 0;
+            player.x = 50;
+            player.y = canvas.height - 150;
+            player.dy = 0;
+            player.isJumping = false;
+            gamePaused = false;
+        }
+
+        // Mostrar caja de entrada para resolver la operación
+        function showInputBox() {
+            gamePaused = true;
+            inputBox.style.display = "block";
+            mathQuestion.textContent = `¿Cuánto es ${currentEnemy.operation}?`;
+            userAnswerInput.value = "";
+            userAnswerInput.focus();
+        }
+
+        // Ocultar caja de entrada
+        function hideInputBox() {
+            gamePaused = false;
+            inputBox.style.display = "none";
+        }
+
+        // Verificar respuesta del usuario
+        function checkAnswer() {
+            const userAnswer = parseInt(userAnswerInput.value);
+            if (userAnswer === currentEnemy.answer) {
+                score += 10;
+                enemies.splice(enemies.indexOf(currentEnemy), 1);
+            } else {
+                endGame();
+            }
+            currentEnemy = null;
+            hideInputBox();
+        }
+
+        // Bucle principal del juego
+        function gameLoop() {
+            if (isGameOver) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawPlatforms();
+            drawPlayer();
+            drawEnemies();
+
+            updatePlayer();
+            updateEnemies();
+            handleJump();
+            spawnEnemies();
+            updateHUD();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Eventos de teclado
+        window.addEventListener("keydown", (e) => {
+            keys[e.key] = true;
+
+            if (isGameOver && e.key === "r") {
+                restartGame();
+                gameLoop();
+            }
+        });
+
+        window.addEventListener("keyup", (e) => {
+            keys[e.key] = false;
+        });
+
+        userAnswerInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                checkAnswer();
+            }
+        });
+
+        // Iniciar juego
+        gameLoop();
+    </script>
+</body>
+</html>

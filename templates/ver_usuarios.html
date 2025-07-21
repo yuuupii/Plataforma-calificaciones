@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Usuarios Registrados</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-5">
+  <h2 class="text-center mb-4">👥 Usuarios Registrados</h2>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="alert alert-info text-center">
+        {{ messages[0] }}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- 🔹 Tabla de Docentes -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">Docentes</div>
+    <div class="card-body">
+      <table class="table table-bordered table-hover">
+        <thead class="thead-light">
+          <tr>
+            <th>ID</th>
+            <th>Usuario</th>
+            <th>Editar 📝</th>
+            <th>Eliminar ❌</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in docentes %}
+          <tr>
+            <td>{{ d.id }}</td>
+            <td>{{ d.usuario }}</td>
+            <td>
+              <a href="{{ url_for('editar_usuario', tipo='docente', user_id=d.id) }}" class="btn btn-sm btn-warning">📝</a>
+            </td>
+            <td>
+              <a href="{{ url_for('eliminar_usuario', tipo='docente', user_id=d.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('¿Eliminar este docente?')">❌</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 🔸 Tabla de Administrativos -->
+  <div class="card mb-5">
+    <div class="card-header bg-success text-white">Administrativos</div>
+    <div class="card-body">
+      <table class="table table-bordered table-hover">
+        <thead class="thead-light">
+          <tr>
+            <th>ID</th>
+            <th>Usuario</th>
+            <th>Editar 📝</th>
+            <th>Eliminar ❌</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in admins %}
+          <tr>
+            <td>{{ a.id }}</td>
+            <td>{{ a.usuario }}</td>
+            <td>
+              <a href="{{ url_for('editar_usuario', tipo='administrativo', user_id=a.id) }}" class="btn btn-sm btn-warning">📝</a>
+            </td>
+            <td>
+              <a href="{{ url_for('eliminar_usuario', tipo='administrativo', user_id=a.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('¿Eliminar este administrativo?')">❌</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if usuario_editar %}
+<div class="card mb-5">
+  <div class="card-header bg-warning text-dark">📝 Editar {{ tipo_edicion|capitalize }}: {{ usuario_editar['usuario'] }}</div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('actualizar_usuario') }}">
+      <input type="hidden" name="user_id" value="{{ usuario_editar['id'] }}">
+      <input type="hidden" name="tipo" value="{{ tipo_edicion }}">
+
+      <div class="form-group">
+        <label for="usuario">Nombre de usuario:</label>
+        <input type="text" id="usuario" name="usuario" value="{{ usuario_editar['usuario'] }}" class="form-control" required>
+      </div>
+
+      <div class="form-group">
+        <label for="contrasena">Nueva contraseña (opcional):</label>
+        <input type="password" id="contrasena" name="contrasena" class="form-control" placeholder="Dejar en blanco para mantener la actual">
+      </div>
+
+      <div class="text-center">
+        <button type="submit" class="btn btn-success">💾 Guardar cambios</button>
+        <a href="{{ url_for('ver_usuarios') }}" class="btn btn-secondary ml-2">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+  </div>
+
+  <!-- 🔙 Volver al menú -->
+  <div class="text-center">
+    <a href="{{ url_for('menu_admin') }}" class="btn btn-secondary">🔙 Volver al menú administrativo</a>
+  </div>
+</div>
+</body>
+</html>

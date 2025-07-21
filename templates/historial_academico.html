@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Historial Académico</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-5">
+  <h2 class="text-center mb-4">Historial Académico</h2>
+
+  {% if historial %}
+    {% for licenciatura, semestres in historial.items() %}
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white font-weight-bold">
+          {{ licenciatura }}
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for semestre, materias in semestres|dictsort %}
+              <div class="col-md-6 col-lg-4 mb-3">
+                <div class="border rounded p-3 h-100">
+                  <h5 class="text-info">Semestre {{ semestre }}</h5>
+                  {% if materias %}
+                    <ul class="list-group list-group-flush mb-2">
+                      {% for m in materias %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                          {{ m.materia }}
+                          <span class="badge badge-secondary">{{ m.calificacion }}</span>
+                        </li>
+                      {% endfor %}
+                    </ul>
+                    <div class="text-right font-weight-bold text-success">
+                      Promedio: {{ promedios_por_semestre[semestre] }}
+                    </div>
+                  {% else %}
+                    <p class="text-muted">Sin calificaciones registradas.</p>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="text-muted text-center">No hay historial académico disponible.</p>
+  {% endif %}
+
+  <div class="text-center mt-4">
+    <a href="{{ url_for('mostrar_calificaciones') }}" class="btn btn-outline-secondary">Volver a Calificaciones</a>
+  </div>
+
+  {% if promedios_por_semestre %}
+  <div class="mt-5">
+    <h5 class="text-center mb-3">📊 Evolución del Promedio por Semestre</h5>
+    <canvas id="graficaPromedios" height="130"></canvas>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{% if promedios_por_semestre %}
+<script type="text/javascript">
+  // Los datos se generan como cadenas JSON válidas
+  const semestres = JSON.parse('{{ promedios_por_semestre.keys() | list | tojson | safe }}');
+  const promedios = JSON.parse('{{ promedios_por_semestre.values() | list | tojson | safe }}');
+
+  const ctx = document.getElementById('graficaPromedios').getContext('2d');
+  const graficaPromedios = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: semestres.map(s => 'Semestre ' + s),
+      datasets: [{
+        label: 'Promedio',
+        data: promedios,
+        backgroundColor: 'rgba(40, 167, 69, 0.4)',
+        borderColor: 'rgba(40, 167, 69, 1)',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          ticks: { stepSize: 10 }
+        }
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top'
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false
+        }
+      }
+    }
+  });
+</script>
+{% endif %}
+</body>
+</html>

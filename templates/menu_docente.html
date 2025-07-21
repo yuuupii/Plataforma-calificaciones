@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel Docente</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-4">
+  <div class="text-center mb-4">
+    <h2>Bienvenido, {{ session['usuario'] }} 👨‍🏫</h2>
+    <p>Selecciona una opción para continuar:</p>
+  </div>
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow">
+        <div class="card-body">
+          <ul class="list-group">
+            <li class="list-group-item">
+              <a href="{{ url_for('registrar_calificacion') }}" class="btn btn-outline-primary btn-block">📚 Registro de Alumnos y Calificaciones</a>
+            </li>
+            <li class="list-group-item">
+              <a href="{{ url_for('ver_materias') }}" class="btn btn-outline-success btn-block">📝 Catálogo de Materias Registradas</a>
+            </li>
+            <li class="list-group-item">
+              <a href="{{ url_for('gestion_materias') }}" class="btn btn-outline-success btn-block">📚 Gestión de Materias</a>
+            </li>
+            <li class="list-group-item">
+              <a href="{{ url_for('cambiar_contrasena') }}" class="btn btn-outline-secondary btn-block">🔐 Cambiar contraseña</a>
+            </li>
+            <li class="list-group-item">
+              <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-block">🔓 Cerrar sesión</a>
+            </li>
+            <li class="list-group-item">
+                <div class="text-center mt-3">
+                  <a href="{{ url_for('registrar_usuario_publico') }}" class="btn btn-link">¿No tienes cuenta? Regístrate aquí</a>
+                </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="card-footer text-center">
+      <a href="{{ url_for('registrar_usuario') }}">🔙 Volver al inicio</a>
+    </div>
+</body>
+</html>

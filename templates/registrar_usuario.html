@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro de Usuarios</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-5">
+  <div class="card">
+    <div class="card-header bg-info text-white text-center">
+      <h4>Registrar Nuevo Usuario</h4>
+    </div>
+    <div class="card-body">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="alert alert-warning text-center">{{ messages[0] }}</div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST">
+        <div class="form-group">
+          <label for="tipo">Tipo de usuario:</label>
+          <select id="tipo" name="tipo" class="form-control" required>
+            <option value="" disabled selected>Selecciona tipo</option>
+            <option value="docente">Docente</option>
+            <option value="administrativo">Administrativo</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="usuario">Nombre de usuario:</label>
+          <input type="text" id="usuario" name="usuario" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label for="contrasena">Contraseña:</label>
+          <input type="password" id="contrasena" name="contrasena" class="form-control" required>
+        </div>
+
+        <button type="submit" class="btn btn-info btn-block">Registrar Usuario</button>
+      </form>
+    </div>
+
+    <div class="card-footer text-center">
+      <a href="{{ url_for('menu_admin') }}">🔙 Volver al panel de control</a>
+    </div>
+  </div>
+
+  <div class="mt-4">
+<h5 class="text-success">Docentes registrados</h5>
+<table class="table table-sm table-bordered table-hover">
+  <thead class="thead-light">
+    <tr>
+      <th>ID</th>
+      <th>Usuario</th>
+      <th>Contraseña</th>
+      <th>Eliminar-actualizar contraseña</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in docentes %}
+    <tr>
+      <td>{{ d.id }}</td>
+      <td>{{ d.usuario }}</td>
+      <td>
+        <span id="clave-docente-{{ d.id }}">••••••</span>
+        <button type="button" class="btn btn-sm btn-link"
+                onclick="toggleClave(this, 'clave-docente-{{ d.id }}', '{{ d.contrasena }}')">
+            <span>🔓</span>
+        </button>
+      </td>
+      <td>
+        <a href="{{ url_for('eliminar_usuario', tipo='docente', user_id=d.id) }}"
+           class="btn btn-sm btn-danger"
+           onclick="return confirm('¿Eliminar este docente?')">❌</a>
+           <a href="{{ url_for('actualizar_contrasena', tipo='docente', user_id=d.id) }}"
+            class="btn btn-sm btn-warning">🔑</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+    <h5 class="text-info">Administrativos registrados</h5>
+<table class="table table-sm table-bordered table-hover">
+  <thead class="thead-light">
+    <tr>
+      <th>ID</th>
+      <th>Usuario</th>
+      <th>Contraseña</th>
+      <th>Eliminar-actualizar contraseña</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in administrativos %}
+    <tr>
+      <td>{{ a.id }}</td>
+      <td>{{ a.usuario }}</td>
+      <td>
+        <span id="clave-admin-{{ a.id }}">••••••</span>
+        <button type="button" class="btn btn-sm btn-link"
+                onclick="toggleClave(this, 'clave-admin-{{ a.id }}', '{{ a.contrasena }}')">
+            <span>🔓</span>
+        </button>
+      </td>
+      <td>
+        <a href="{{ url_for('eliminar_usuario', tipo='administrativo', user_id=a.id) }}"
+           class="btn btn-sm btn-danger"
+           onclick="return confirm('¿Eliminar este administrativo?')">❌</a>
+           <a href="{{ url_for('actualizar_contrasena', tipo='administrativo', user_id=a.id) }}"
+            class="btn btn-sm btn-warning">🔑</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+  </div>
+</div>
+<script>
+function toggleClave(button, spanId, textoPlano) {
+  const campo = document.getElementById(spanId);
+  const icono = button.querySelector('span');
+
+  if (campo.textContent === '••••••') {
+    campo.textContent = textoPlano;
+    icono.textContent = '🔒';
+  } else {
+    campo.textContent = '••••••';
+    icono.textContent = '🔓';
+  }
+}
+</script>
+</body>
+</html>

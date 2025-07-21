@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash, g
-from flask_mail import Mail, Message
 import sqlite3
 import os
 import json
@@ -11,15 +10,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
-
-# Configuración de Flask-Mail usando variables de entorno
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-
-mail = Mail(app)
 
 def get_db_connection():
     if 'db' not in g:
@@ -75,12 +65,6 @@ def inicializar_base_datos():
 
     conn.commit()
     conn.close()
-
-# Función para enviar notificaciones
-def send_notification(subject, recipient, body):
-    msg = Message(subject, recipients=[recipient])
-    msg.body = body
-    mail.send(msg)
 
 @app.route('/')
 def index():
@@ -493,12 +477,6 @@ def add_calificacion():
         conn = get_db_connection()
         conn.execute('INSERT INTO calificaciones (user_id, materia, calificacion) VALUES (?, ?, ?)', (user_id, materia, calificacion))
         conn.commit()
-
-        # Enviar notificación
-        user = conn.execute('SELECT email FROM estudiantes WHERE id = ?', (user_id,)).fetchone()
-        if user:
-            send_notification('Nueva Calificación Añadida', user['email'], f'Se ha añadido una nueva calificación para {materia}: {calificacion}.')
-
         conn.close()
         return redirect(url_for('ver_calificaciones'))
     except Exception as e:

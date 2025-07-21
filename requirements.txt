@@ -3,3 +3,4 @@ gunicorn
 Werkzeug
 SQLAlchemy
 alembic
+plotly

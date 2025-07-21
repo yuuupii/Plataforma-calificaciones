@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: Plataforma-calificaciones
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    autoDeploy: true
+    envVars:
+      - key: SECRET_KEY
+        value: clave_segura_2025_Jose
+      - key: MAIL_USERNAME
+        value: tu_correo@gmail.com
+      - key: MAIL_PASSWORD
+        value: tu_contraseña_de_app

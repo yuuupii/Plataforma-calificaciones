@@ -4,3 +4,4 @@ Werkzeug
 SQLAlchemy
 alembic
 plotly[express]
+pandas

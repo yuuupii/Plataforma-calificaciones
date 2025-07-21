@@ -68,6 +68,17 @@ def inicializar_base_datos():
 
 @app.route('/')
 def index():
+    # Si ya hay sesión activa, redirige al panel correcto
+    if 'user_id' in session:
+        rol = session.get('rol')
+        if rol == 'alumno':
+            return redirect('/panel-alumno')
+        elif rol == 'docente':
+            return redirect('/panel-docente')
+        elif rol == 'admin':
+            return redirect('/panel-admin')
+    
+    # Si no hay sesión, mostrar selección de rol
     return render_template('seleccionar_rol.html')
 
 @app.route('/menu/docente')

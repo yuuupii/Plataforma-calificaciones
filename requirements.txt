@@ -5,3 +5,4 @@ SQLAlchemy
 alembic
 plotly[express]
 pandas
+flask-wtf==1.1.1

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 Flask
 gunicorn
 Werkzeug
@@ -7,12 +6,3 @@ alembic
 plotly[express]
 pandas
 flask-wtf==1.1.1
-=======
-Flask
-gunicorn
-Werkzeug
-SQLAlchemy
-alembic
-plotly[express]
-pandas
->>>>>>> 37743f035406ec6a16b729bbf0929d5e58becd14

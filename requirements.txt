@@ -1,6 +1,6 @@
 Flask==2.3.3
 gunicorn
-Werkzeug
+Werkzeug==2.3.7
 SQLAlchemy
 alembic
 plotly[express]

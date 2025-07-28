@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <title>Gestión de Materias</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet"
-          href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    
+    <!-- Bootstrap y estilos -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/parametros.css') }}">
+
+    <!-- Scripts de Bootstrap -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/parametros.css') }}">
 </head>
 <body>
 <div class="container mt-4">
@@ -48,7 +50,7 @@
 
     <!-- Lista de materias agrupadas -->
     <h2 class="mt-4">Lista de Materias</h2>
-    <div id="materias-por-licenciatura">
+    <div id="materias-por-licenciatura" class="lista-materias">
         {% for licenciatura, materias_por_semestre in materias.items() %}
         <div class="card mb-2">
             <div class="card-header">
@@ -92,118 +94,6 @@
         </div>
         {% endfor %}
     </div>
-
-    <!-- Formulario para calificar alumno -->
-    <h2 class="mt-4">Calificar Alumno</h2>
-    <form action="{{ url_for('update_calificacion') }}" method="post" class="mb-4">
-        <div class="form-group">
-            <label for="licenciatura_calificar">Licenciatura:</label>
-            <select id="licenciatura_calificar" name="licenciatura" class="form-control" required>
-                <option value="Matematicas">Licenciatura en Enseñanza y Aprendizaje de las Matemáticas</option>
-                <option value="Primaria">Licenciatura en Primaria</option>
-                <option value="Español">Licenciatura en Enseñanza y Aprendizaje del Español</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="semestre_calificar">Semestre:</label>
-            <select id="semestre_calificar" name="semestre" class="form-control" required>
-                <option value="1">1° Semestre</option>
-                <option value="2">2° Semestre</option>
-                <option value="3">3° Semestre</option>
-                <option value="4">4° Semestre</option>
-                <option value="5">5° Semestre</option>
-                <option value="6">6° Semestre</option>
-                <option value="7">7° Semestre</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="materia_calificar">Materia:</label>
-            <select id="materia_calificar" name="materia_calificar" class="form-control" required>
-                <option value="">Selecciona una materia</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="nombre_alumno">Nombre del Alumno:</label>
-            <input type="text" id="nombre_alumno" name="nombre_alumno" class="form-control" required>
-        </div>
-        <div class="form-group">
-            <label for="calificacion">Calificación:</label>
-            <input type="number" id="calificacion" name="calificacion" class="form-control" min="0" max="100" required>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">Calificar</button>
-    </form>
 </div>
-
-<!-- Scripts -->
-<script>
-    $(document).ready(function () {
-        // Eliminar materia con AJAX
-        $('.delete-button').on('click', function () {
-            const button = $(this);
-            const materiaId = button.data('id');
-
-            if (!confirm('¿Estás seguro de eliminar esta materia?')) return;
-
-            $.ajax({
-                url: '/delete_materia',
-                method: 'POST',
-                data: { id: materiaId },
-                success: function (response) {
-                    if (response.success) {
-                        button.closest('li').fadeOut(() => $(this).remove());
-                        alert(response.message);
-                    } else {
-                        alert('Error: ' + response.message);
-                    }
-                },
-                error: function () {
-                    alert('Ocurrió un error al eliminar la materia.');
-                }
-            });
-        });
-
-        // Añadir materia sin recargar
-        $('#form-materia').on('submit', function (e) {
-            e.preventDefault();
-            const formData = $(this).serialize();
-
-            $.ajax({
-                url: '/add_materia',
-                method: 'POST',
-                data: formData,
-                success: function () {
-                    location.reload(); // Más adelante: insertar directamente sin recargar
-                },
-                error: function () {
-                    alert('Ocurrió un error al agregar la materia.');
-                }
-            });
-        });
-
-        // Cargar materias dinámicamente para calificar
-        $('#licenciatura_calificar, #semestre_calificar').on('change', function () {
-            const licenciatura = $('#licenciatura_calificar').val();
-            const semestre = $('#semestre_calificar').val();
-            const select = $('#materia_calificar');
-
-            if (!licenciatura || !semestre) return;
-
-            $.ajax({
-                url: '/obtener_materias',
-                method: 'GET',
-                data: { licenciatura: licenciatura, semestre: semestre },
-                success: function (response) {
-                    select.empty().append('<option value="">Selecciona una materia</option>');
-                    response.materias.forEach(materia => {
-                        select.append(`<option value="${materia.id}">${materia.nombre}</option>`);
-                    });
-                },
-                error: function () {
-                    alert('Error al cargar las materias.');
-                }
-            });
-        });
-    });
-</script>
 </body>
 </html>

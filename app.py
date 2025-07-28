@@ -7,6 +7,7 @@ import pandas as pd
 from materias_util import verificar_materia_duplicada, eliminar_materias_duplicadas
 from flask import g
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_wtf import FlaskForm
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -554,52 +555,60 @@ def mostrar_calificaciones():
 def registrar_calificacion():
     conn = get_db_connection()
 
+    # 📝 Procesar formulario (POST)
     if request.method == 'POST':
         alumno_id = request.form['alumno_id']
         materia_id = request.form['materia_id']
         calificacion = request.form['calificacion']
 
-        registro = conn.execute('''
-            SELECT id FROM calificaciones
-            WHERE user_id = ? AND materia = ?
-        ''', (alumno_id, materia_id)).fetchone()
+        try:
+            registro = conn.execute(
+                'SELECT id FROM calificaciones WHERE user_id = ? AND materia = ?',
+                (alumno_id, materia_id)
+            ).fetchone()
 
-        if registro:
-            conn.execute('''
-                UPDATE calificaciones SET calificacion = ?
-                WHERE user_id = ? AND materia = ?
-            ''', (calificacion, alumno_id, materia_id))
-            mensaje = '🔄 Calificación actualizada con éxito.'
-        else:
-            conn.execute('''
-                INSERT INTO calificaciones (user_id, materia, calificacion)
-                VALUES (?, ?, ?)
-            ''', (alumno_id, materia_id, calificacion))
-            mensaje = '✅ Calificación registrada con éxito.'
+            if registro:
+                conn.execute(
+                    'UPDATE calificaciones SET calificacion = ? WHERE user_id = ? AND materia = ?',
+                    (calificacion, alumno_id, materia_id)
+                )
+                mensaje = '🔄 Calificación actualizada con éxito.'
+            else:
+                conn.execute(
+                    'INSERT INTO calificaciones (user_id, materia, calificacion) VALUES (?, ?, ?)',
+                    (alumno_id, materia_id, calificacion)
+                )
+                mensaje = '✅ Calificación registrada con éxito.'
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+
+        except Exception as e:
+            mensaje = f'⚠️ Error al guardar la calificación: {str(e)}'
+
+        finally:
+            conn.close()
+
         return redirect(url_for('registrar_calificacion', mensaje=mensaje))
 
-    # GET: cargar datos
+    # 📦 Renderizar vista (GET)
     mensaje = request.args.get('mensaje')
-    alumnos = conn.execute('SELECT * FROM estudiantes').fetchall()
-    materias = conn.execute('SELECT * FROM materias').fetchall()
 
-    # Agrupar alumnos por licenciatura y semestre
+    alumnos_sql = conn.execute('SELECT * FROM estudiantes').fetchall()
+    materias_sql = conn.execute('SELECT * FROM materias').fetchall()
+
+    # Convertir cada Row a diccionario para compatibilidad con tojson
+    alumnos = [dict(a) for a in alumnos_sql]
+    materias = [dict(m) for m in materias_sql]
+
+    # 📚 Agrupar alumnos por licenciatura y semestre
     alumnos_agrupados = {}
     for alumno in alumnos:
         lic = alumno['licenciatura']
         sem = alumno['semestre']
 
-        if lic not in alumnos_agrupados:
-            alumnos_agrupados[lic] = {}
-        if sem not in alumnos_agrupados[lic]:
-            alumnos_agrupados[lic][sem] = []
+        alumnos_agrupados.setdefault(lic, {}).setdefault(sem, []).append(alumno)
 
-        alumnos_agrupados[lic][sem].append(dict(alumno))
-
-    # Ordenar nombres alfabéticamente
+    # 🔠 Ordenar alumnos por nombre
     for lic in alumnos_agrupados:
         for sem in alumnos_agrupados[lic]:
             alumnos_agrupados[lic][sem].sort(key=lambda x: x['nombre'])
@@ -611,6 +620,43 @@ def registrar_calificacion():
                            materias=materias,
                            mensaje=mensaje,
                            alumnos_agrupados=alumnos_agrupados)
+
+@app.route('/guardar-calificacion', methods=['POST'])
+def guardar_calificacion():
+    conn = get_db_connection()
+
+    alumno_id = request.form['alumno_id']
+    materia_id = request.form['materia_id']
+    calificacion = request.form['calificacion']
+
+    try:
+        registro = conn.execute(
+            'SELECT id FROM calificaciones WHERE user_id = ? AND materia = ?',
+            (alumno_id, materia_id)
+        ).fetchone()
+
+        if registro:
+            conn.execute(
+                'UPDATE calificaciones SET calificacion = ? WHERE user_id = ? AND materia = ?',
+                (calificacion, alumno_id, materia_id)
+            )
+            mensaje = '🔄 Calificación actualizada con éxito.'
+        else:
+            conn.execute(
+                'INSERT INTO calificaciones (user_id, materia, calificacion) VALUES (?, ?, ?)',
+                (alumno_id, materia_id, calificacion)
+            )
+            mensaje = '✅ Calificación registrada con éxito.'
+
+        conn.commit()
+
+    except Exception as e:
+        mensaje = f'⚠️ Error al guardar la calificación: {str(e)}'
+
+    finally:
+        conn.close()
+
+    return redirect(url_for('registrar_calificacion', mensaje=mensaje))
 
 @app.route('/historial')
 def historial_academico():

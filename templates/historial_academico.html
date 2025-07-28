@@ -1,5 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
+  <style> 
+    @media screen and (max-width: 576px) {
+    .card-body .row {
+      margin-left: 0;
+      margin-right: 0;
+    }
+
+    .col-md-6, .col-lg-4 {
+      padding-left: 4px;
+      padding-right: 4px;
+    }
+
+    canvas#graficaPromedios {
+      width: 100% !important;
+    }
+  }
+  </style>
 <head>
   <meta charset="UTF-8">
   <title>Historial Académico</title>
@@ -7,7 +24,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/parametros.css') }}">
 </head>
 <body>
-<div class="container mt-5">
+<div class="container-fluid mt-5">
   <h2 class="text-center mb-4">Historial Académico</h2>
 
   {% if historial %}

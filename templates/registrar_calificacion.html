@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <script id="datos-json" type="application/json">
+    {
+      "materias": {{ materias | tojson | safe }},
+      "alumnos": {{ alumnos | tojson | safe }}
+    }
+  </script>
   <meta charset="UTF-8">
   <title>Registrar Calificación</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -43,6 +49,17 @@
       background-color: #c7e6f7;
       color: #000;
     }
+
+    .invalid-feedback {
+      display: none;
+      color: #dc3545;
+      font-size: 0.875em;
+      margin-top: 5px;
+    }
+
+    select:invalid + .invalid-feedback {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -59,81 +76,81 @@
   </div>
   {% endif %}
 
-  <!-- Formulario para añadir alumno -->
-  <h4>➕ Añadir o actualizar alumno</h4>
-  <form method="POST" action="{{ url_for('datos_alumnos') }}" class="mb-5">
-    <div class="form-row">
-      <div class="form-group col-md-4">
-        <label for="nombre">Nombre:</label>
-        <input type="text" name="nombre" id="nombre" class="form-control" required>
-      </div>
-      <div class="form-group col-md-3">
-        <label for="matricula">Matrícula:</label>
-        <input type="text" name="matricula" id="matricula" class="form-control" required>
-      </div>
-      <div class="form-group col-md-3">
-        <label for="licenciatura">Licenciatura:</label>
-        <select name="licenciatura" id="licenciatura" class="form-control" required>
-          <option value="Matematicas">Matemáticas</option>
-          <option value="Primaria">Primaria</option>
-          <option value="Espanol">Español</option>
-        </select>
-      </div>
-      <div class="form-group col-md-2">
-        <label for="semestre">Semestre:</label>
-        <select name="semestre" id="semestre" class="form-control" required>
-          {% for s in range(1, 8) %}
-          <option value="{{ s }}">{{ s }}°</option>
-          {% endfor %}
-        </select>
-      </div>
+<!-- ✅ FORMULARIO: Añadir o actualizar alumno -->
+<h4>➕ Añadir o actualizar alumno</h4>
+<form method="POST" action="{{ url_for('datos_alumnos') }}" class="mb-5">
+  <div class="form-row">
+    <div class="form-group col-md-4">
+      <label for="nombre">Nombre:</label>
+      <input type="text" name="nombre" id="nombre" class="form-control" required>
     </div>
-    <button type="submit" class="btn btn-primary btn-block">Guardar Alumno</button>
-  </form>
-
-  <!-- Formulario para registrar calificación -->
-  <h4 class="mt-5">📝 Registrar calificación</h4>
-  <form method="POST" action="{{ url_for('registrar_calificacion') }}">
-    <div class="form-group">
-      <label for="alumno">Alumno:</label>
-      <select name="alumno_id" id="alumno" class="form-control" required>
-        <option value="">Selecciona un alumno</option>
-        {% for alumno in alumnos %}
-        <option value="{{ alumno.id }}" data-licenciatura="{{ alumno.licenciatura }}">{{ alumno.nombre }}</option>
-        {% endfor %}
+    <div class="form-group col-md-3">
+      <label for="matricula">Matrícula:</label>
+      <input type="text" name="matricula" id="matricula" class="form-control" required>
+    </div>
+    <div class="form-group col-md-3">
+      <label for="licenciatura">Licenciatura:</label>
+      <select name="licenciatura" id="licenciatura" class="form-control" required>
+        <option value="Matematicas">Matemáticas</option>
+        <option value="Primaria">Primaria</option>
+        <option value="Espanol">Español</option>
       </select>
     </div>
-
-    <div class="form-group">
+    <div class="form-group col-md-2">
       <label for="semestre">Semestre:</label>
       <select name="semestre" id="semestre" class="form-control" required>
         {% for s in range(1, 8) %}
-        <option value="{{ s }}">{{ s }}° semestre</option>
+        <option value="{{ s }}">{{ s }}°</option>
         {% endfor %}
       </select>
     </div>
+  </div>
+  <button type="submit" class="btn btn-primary btn-block">Guardar Alumno</button>
+</form>
 
+<!-- ✅ FORMULARIO: Registrar calificación por pasos -->
+<h4 class="mt-5">📝 Registrar calificación</h4>
+
+<!-- Paso 1 -->
+<div id="paso1" class="paso activo">
+  <label for="semestre_filtro">📘 Selecciona un semestre</label>
+  <select id="semestre_filtro" class="form-control">
+    <option value="">Selecciona un semestre</option>
+    {% for s in range(1, 8) %}
+      <option value="{{ s }}">{{ s }}° semestre</option>
+    {% endfor %}
+  </select>
+</div>
+
+<!-- Paso 2 -->
+<div id="paso2" class="paso">
+  <label for="materia">📚 Elige una materia</label>
+  <select id="materia" class="form-control" required>
+  <option value="" disabled selected>Seleccione una materia de la lista</option>
+  </select>
+  <div id="error-materia" class="invalid-feedback">
+  ⚠️ Debes seleccionar una materia para continuar.
+  </div>
+</div>
+
+<!-- Paso 3 -->
+<div id="paso3" class="paso">
+  <form method="POST" action="{{ url_for('guardar_calificacion') }}">
     <div class="form-group">
-      <label for="materia">Materia:</label>
-      <select name="materia_id" id="materia" class="form-control" required>
-        <option value="">Selecciona una materia</option>
-        {% for materia in materias %}
-        <option value="{{ materia.id }}"
-                data-semestre="{{ materia.semestre }}"
-                data-licenciatura="{{ materia.licenciatura }}">
-          {{ materia.nombre }} ({{ materia.licenciatura }} - {{ materia.semestre }}°)
-        </option>
-        {% endfor %}
+      <label for="alumno">👨‍🎓 Selecciona un alumno</label>
+      <select name="alumno_id" id="alumno" class="form-control" required>
+        <option value="">Selecciona un alumno</option>
       </select>
     </div>
-
     <div class="form-group">
       <label for="calificacion">Calificación:</label>
       <input type="number" name="calificacion" id="calificacion" class="form-control" min="0" max="100" required>
     </div>
-
+    <input type="hidden" name="materia_id" id="materia_hidden">
+    <input type="hidden" name="semestre" id="semestre_hidden">
     <button type="submit" class="btn btn-success btn-block">Guardar Calificación</button>
   </form>
+</div>
 
 <!-- Catálogo de alumnos -->
 <hr class="my-5">
@@ -240,13 +257,180 @@
   width: 280px;
   opacity: 1;
 }
+
+.paso {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  margin-bottom: 20px;
+}
+
+.paso.activo {
+  opacity: 1;
+  transform: translateY(0);
+}
 </style>
 
 <script>
 $(document).ready(function () {
   let animacionActiva = false;
 
-  // Mostrar/ocultar buscador individual por licenciatura
+  // ============================
+  // 🎓 FILTRO DINÁMICO DE CALIFICACIÓN
+  // ============================
+  const rawJson = document.getElementById('datos-json').textContent;
+  const datos = JSON.parse(rawJson);
+  const todasMaterias = datos.materias;
+  const todosAlumnos = datos.alumnos;
+
+  // Evento: selección de semestre
+  $('#semestre_filtro').on('change', function () {
+    const semestre = $(this).val();
+    $('#materia').prop('disabled', false);
+
+    let opciones = '<option value="">Selecciona una materia</option>';
+    todasMaterias.forEach(m => {
+      if (parseInt(m.semestre) === parseInt(semestre)) {
+        opciones += `<option value="${m.id}">${m.nombre} (${m.licenciatura})</option>`;
+      }
+    });
+
+    $('#materia').html(opciones);
+    $('#registro-calificacion').hide();
+
+    // Validación visual (opcional)
+    if (opciones === '<option value="">Selecciona una materia</option>') {
+      alert('No hay materias registradas para el semestre seleccionado.');
+    }
+  });
+
+  // Evento: selección de materia
+  $('#materia').on('change', function () {
+    const materiaId = $(this).val();
+    const semestre = $('#semestre_filtro').val();
+
+    if (!materiaId || !semestre) {
+      $('#registro-calificacion').hide();
+      return;
+    }
+
+    $('#materia_hidden').val(materiaId);
+    $('#semestre_hidden').val(semestre);
+
+    const alumnosFiltrados = todosAlumnos.filter(a => String(a.semestre) === semestre);
+
+    if (alumnosFiltrados.length === 0) {
+      $('#registro-calificacion').hide();
+      alert('No hay alumnos registrados en ese semestre.');
+      return;
+    }
+
+    let opciones = '<option value="">Selecciona un alumno</option>';
+    alumnosFiltrados.forEach(a => {
+      opciones += `<option value="${a.id}">${a.nombre} (${a.licenciatura})</option>`;
+    });
+
+    $('#alumno').html(opciones);
+    $('#registro-calificacion').fadeIn();
+  });
+});
+
+$(document).ready(function () {
+  const rawJson = document.getElementById('datos-json').textContent;
+  const datos = JSON.parse(rawJson);
+  const todasMaterias = datos.materias;
+  const todosAlumnos = datos.alumnos;
+
+function cargarMaterias(materias) {
+  const materiaSelect = document.getElementById("materia");
+
+  // ✅ 1. Limpiar opciones anteriores
+  materiaSelect.innerHTML = ''; // 🧹 borra todas las opciones previas
+
+  // ✅ 2. Reponer opción por defecto
+  materiaSelect.innerHTML = '<option value="" disabled selected>Seleccione una materia de la lista</option>';
+
+  // ✅ 3. Agregar nuevas opciones desde tu array de materias
+  materias.forEach(m => {
+    materiaSelect.innerHTML += `<option value="${m.id}">${m.nombre}</option>`;
+  });
+
+  // ✅ 4. Habilitar el campo si estaba deshabilitado
+  materiaSelect.disabled = false;
+}
+
+  // Paso 1: Semestre
+  $('#semestre_filtro').on('change', function () {
+    const semestre = $(this).val();
+    $('#materia').prop('disabled', false);
+    $('#paso2').addClass('activo');
+
+    let opciones = '<option value="">Selecciona una materia</option>';
+    todasMaterias.forEach(m => {
+      if (parseInt(m.semestre) === parseInt(semestre)) {
+        opciones += `<option value="${m.id}">${m.nombre} (${m.licenciatura})</option>`;
+      }
+    });
+
+    $('#materia').html(opciones);
+    $('#registro-calificacion').hide();
+  });
+
+  // Paso 2: Materia
+  $('#materia').on('change', function () {
+    const materiaId = $(this).val();
+    const semestre = $('#semestre_filtro').val();
+
+    if (!materiaId || !semestre) {
+      $('#registro-calificacion').hide();
+      return;
+    }
+
+    $('#materia_hidden').val(materiaId);
+    $('#semestre_hidden').val(semestre);
+
+    const alumnosFiltrados = todosAlumnos.filter(a => parseInt(a.semestre) === parseInt(semestre));
+
+    let opciones = '<option value="">Selecciona un alumno</option>';
+    alumnosFiltrados.forEach(a => {
+      opciones += `<option value="${a.id}">${a.nombre} (${a.licenciatura})</option>`;
+    });
+
+    $('#alumno').html(opciones);
+    $('#paso3').addClass('activo');
+    $('#registro-calificacion').fadeIn();
+  });
+});
+
+$('#paso3 form').on('submit', function (e) {
+  e.preventDefault();
+
+  const materia = $('#materia').val();
+  const alumno = $('#alumno').val();
+  const calificacion = $('#calificacion').val();
+
+  if (!materia || !alumno || calificacion === '') {
+    alert('⚠️ Por favor, selecciona una materia, un alumno y escribe una calificación antes de guardar.');
+    return;
+  }
+
+  // Confirmación previa
+  const resumen = `
+    ¿Deseas guardar esta calificación?\n
+    📘 Semestre: ${$('#semestre_filtro option:selected').text()}
+    📚 Materia: ${$('#materia option:selected').text()}
+    👨‍🎓 Alumno: ${$('#alumno option:selected').text()}
+    📝 Calificación: ${calificacion}
+  `;
+  if (confirm(resumen)) {
+    this.submit();
+  }
+});
+
+  // ============================
+  // 🕵️‍♂️ BUSCADOR LOCAL DE ALUMNOS
+  // ============================
+
   $('.lupa-buscar').on('click', function (e) {
     e.stopPropagation();
     const lic = $(this).data('licenciatura');
@@ -265,7 +449,6 @@ $(document).ready(function () {
     $buscador.find('.sin-resultados-local').hide();
   });
 
-  // Buscar alumno dentro de cada licenciatura
   $('.input-busqueda-local').on('input', async function () {
     const lic = $(this).data('licenciatura');
     const filtro = $(this).val().toLowerCase();
@@ -306,7 +489,6 @@ $(document).ready(function () {
     });
   });
 
-  // Esperar a que un contenedor colapsado esté visible
   function esperarVisible($elem, intentos = 0) {
     return new Promise(resolve => {
       const check = setInterval(() => {
@@ -319,14 +501,12 @@ $(document).ready(function () {
     });
   }
 
-  // Cerrar el buscador al hacer clic fuera
   $(document).on('click', function (e) {
     if (!$(e.target).closest('.lupa-area').length) {
       $('.buscador-licenciatura').removeClass('activo');
     }
   });
 
-  // Rotar flechitas
   $('.collapse').on('show.bs.collapse', function () {
     $(this).prev().find('.rotate-icon').addClass('rotado');
   }).on('hide.bs.collapse', function () {
@@ -334,30 +514,29 @@ $(document).ready(function () {
   });
 
   // 🔥 Eliminar alumno vía AJAX
-  $('.eliminar-alumno').on('click', function () {
-    const id = $(this).data('id');
-    const $fila = $('#alumno-' + id);
+$('.eliminar-alumno').on('click', function () {
+  const id = $(this).data('id');
+  const $fila = $('#alumno-' + id);
 
-    if (!confirm('¿Deseas eliminar a este alumno?')) return;
+  if (!confirm('¿Deseas eliminar a este alumno?')) return;
 
-    fetch('{{ url_for("delete_alumno") }}', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-Requested-With': 'XMLHttpRequest'
-      },
-      body: new URLSearchParams({ id })
-    })
-    .then(res => {
-      if (res.ok) {
-        $fila.fadeOut(300, () => $fila.remove());
-        $('#alerta-eliminado').fadeIn(300).delay(1500).fadeOut(500);
-      } else {
-        alert('Error al eliminar el alumno.');
-      }
-    })
-    .catch(() => alert('No se pudo conectar con el servidor.'));
-  });
+  fetch('{{ url_for("delete_alumno") }}', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    body: new URLSearchParams({ id })
+  })
+  .then(res => {
+    if (res.ok) {
+      $fila.fadeOut(300, () => $fila.remove());
+      $('#alerta-eliminado').fadeIn(300).delay(1500).fadeOut(500);
+    } else {
+      alert('Error al eliminar el alumno.');
+    }
+  })
+  .catch(() => alert('No se pudo conectar con el servidor.'));
 });
 </script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>

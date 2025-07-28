@@ -38,7 +38,10 @@
 
                 <!-- Botón para eliminar duplicados -->
                 <form method="POST" action="{{ url_for('eliminar_duplicados') }}">
-                    <button type="submit" class="btn btn-danger">Eliminar Calificaciones Duplicadas</button>
+                    {% for calificacion in calificaciones %}
+                        <input type="hidden" name="duplicados" value="{{ calificacion.id }}">
+                    {% endfor %}
+                    <button type="submit" class="btn btn-danger">Eliminar calificaciones duplicadas</button>
                 </form>
 
                 <!-- Formulario de colores -->
@@ -65,7 +68,7 @@
     {% endif %}
 
     <!-- Enlace al historial académico -->
-    <div class="text-center mt-4">
+    <div class="text-left mt-4">
         <a href="{{ url_for('historial_academico') }}" class="btn btn-info">Ver Historial Académico</a>
     </div>
 </div>

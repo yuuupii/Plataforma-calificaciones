@@ -18,6 +18,21 @@
             margin: 0;
             padding-top: 2rem; /* Espacio superior para bajar el cuadro */
         }
+
+        .logo-wrapper img.logo-enuf {
+            margin-left: auto;
+            }
+
+        .logo-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            max-height: 80px;
+            margin-left: auto;
+            margin-bottom: 0px; /* separa los logos del título */
+            }
+
         .login-container {
             background-color: #ffffff;
             padding: 2rem;
@@ -26,25 +41,31 @@
             text-align: center;
             width: 100%;
             max-width: 400px;
+            margin: auto;
             position: relative;
         }
+
         .login-container .logo-sep {
-            width: 120%; /* Ajuste del tamaño del logo SEP */
+            width: 75%;
             position: absolute;
-            top: 0; /* Ajuste de la posición */
-            left: -125%;
+            top: 4%;
+            left: 35%;
+            transform: translateX(-60%); /* Puedes ajustar este valor para moverlo más o menos */
         }
+
         .login-container .logo-enuf {
-            width: 40%; /* Ajuste del tamaño del logo ENUF */
-            position: absolute;
-            top: 0; /* Ajuste de la posición */
-            right: -95%;
+            width: 30%; /* Ajuste del tamaño del logo ENUF */
+            top: 4%; /* Ajuste de la posición */
+            right: 0%;
         }
+
         .login-container h1 {
+            padding-top: 5%;
             margin-bottom: 1rem;
             font-size: 2rem;
             color: #333;
         }
+
         .login-container h2 {
             margin-bottom: 1.5rem;
             font-size: 1.5rem;
@@ -135,54 +156,68 @@
         }
 
         @media screen and (max-width: 576px) {
-        body {
-            align-items: center;
-            padding-top: 1rem;
-            height: auto;
-        }
+            body {
+                align-items: center;
+                padding-top: 1rem;
+                height: auto;
+            }
 
-        .login-container {
-            width: 90%;
-            padding: 1.5rem;
-            margin-top: 20px;
-        }
+            .login-container {
+                width: 90%;
+                padding: 1.5rem;
+                margin-top: 20px;
+                text-align: center;
+            }
 
-        .login-container h1 {
-            font-size: 1.5rem;
-        }
+            .login-container h1 {
+                font-size: 1.5rem;
+            }
 
-        .login-container h2 {
-            font-size: 1.2rem;
-        }
+            .login-container h2 {
+                font-size: 1.2rem;
+            }
 
-        .login-container .social-btn {
-            font-size: 0.9rem;
-            padding: 8px 0;
-        }
+            .login-container .social-btn {
+                font-size: 0.9rem;
+                padding: 8px 0;
+            }
 
-        .login-container .input-box, 
-        .login-container .input-box1 {
-            height: 36px;
-            font-size: 0.9rem;
-        }
+            .login-container .input-box, 
+            .login-container .input-box1 {
+                height: 36px;
+                font-size: 0.9rem;
+            }
 
-        .login-btn {
-            padding: 10px;
-            font-size: 0.95rem;
-        }
+            .login-btn {
+                padding: 10px;
+                font-size: 0.95rem;
+            }
 
-        .logo-sep, .logo-enuf {
-            display: none; /* Opcional: ocultar logos si interfieren en pantallas chicas */
-        }
-    }
+            .logo-sep, .logo-enuf {
+                display: block;
+                position: static;
+                max-width: 50%;
+                margin: 0 auto 10px auto;
+                object-fit: contain;
+            }
+
+            .logo-wrapper {
+                flex-direction: column;
+                gap: 10px;
+                margin-bottom: 20px;
+                align-items: center;
+            }
+         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <!-- Logos de la SEP y ENUF -->
+<div class="login-container">
+    <!-- Logos alineados dentro del cuadro -->
+    <div class="logo-wrapper">
         <img src="{{ url_for('static', filename='img/Logo_pagina.png') }}" alt="Logo SEP" class="logo-sep">
         <img src="{{ url_for('static', filename='img/Logo-enuf.png') }}" alt="Logo ENUF" class="logo-enuf">
-        
+    </div>
+
         <h1>¡Bienvenido!</h1>
         <h2>Iniciar Sesión</h2>
         <h6>Inicio de sesión por Facebook o Google aun no disponible :(</h6>

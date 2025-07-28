@@ -31,11 +31,13 @@ body {
   border: none;
   cursor: pointer;
   font-weight: bold;
+  background-color: #2e86de;
+  color: white;
   transition: background-color 0.3s ease;
 }
 
 .btn-estandar:hover {
-  background-color: #ddd;
+  background-color: #1b4f72;
 }
 
 /* Inputs */
@@ -50,34 +52,90 @@ body {
 }
 
 /* Títulos */
-h1, h2, h3 {
+h1, h2, h3, h4 {
   margin-bottom: 1rem;
   text-align: center;
 }
 
 /* ========================== */
-/* 📱 Media queries */
+/* 📚 Estilos específicos para materias.html */
+/* ========================== */
+
+.lista-materias {
+  text-align: left;
+  padding-left: 0.5rem;
+}
+
+.lista-materias .card-header h3,
+.lista-materias .card-header h4 {
+  text-align: left;
+  margin-left: 0.5rem;
+}
+
+.list-group-item {
+  justify-content: flex-start;
+  gap: 1rem;
+}
+
+/* ========================== */
+/* 📱 Media queries móviles */
 /* ========================== */
 
 @media screen and (max-width: 767px) {
+  body {
+    padding: 0.5rem;
+  }
+
   .container-responsive {
     padding: 0.5rem;
   }
 
-  .btn-estandar {
-    width: 100%;
-    font-size: 0.9rem;
-  }
-
-  .input-estandar {
-    font-size: 0.9rem;
-  }
-
   h1 {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
   }
 
   h2 {
-    font-size: 1.2rem;
+    font-size: 1.3rem;
+  }
+
+  h3, h4 {
+    font-size: 1.1rem;
+    text-align: center;
+  }
+
+  label {
+    font-size: 0.95rem;
+  }
+
+  .form-control {
+    font-size: 0.9rem;
+  }
+
+  .btn-block, .btn-estandar {
+    font-size: 0.95rem;
+    padding: 10px;
+    width: 100%;
+  }
+
+  .lista-materias {
+    padding-left: 0.3rem;
+  }
+
+  .lista-materias .card-header h3,
+  .lista-materias .card-header h4 {
+    font-size: 1rem;
+    text-align: left;
+    margin-left: 0.3rem;
+  }
+
+  .list-group-item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.75rem;
+  }
+
+  .list-group-item .btn {
+    margin-top: 8px;
+    align-self: flex-end;
   }
 }

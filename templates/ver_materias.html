@@ -1,5 +1,38 @@
 <!DOCTYPE html>
 <html lang="es">
+    <style>
+        @media screen and (max-width: 767px) {
+        /* Asegura que cada columna se muestre como bloque completo */
+        .card-body .row {
+            display: block;
+        }
+
+        .card-body .col-md-6,
+        .card-body .col-lg-4 {
+            width: 100% !important;
+            margin-bottom: 1rem;
+        }
+
+        .border {
+            padding: 1rem;
+        }
+
+        .border h5 {
+            font-size: 1.2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .list-group-item {
+            padding: 0.75rem 1rem;
+            font-size: 0.95rem;
+        }
+
+        .list-group-item .btn {
+            font-size: 0.8rem;
+            padding: 6px 10px;
+        }
+        }
+    </style>
 <head>
     <meta charset="UTF-8">
     <title>Catálogo de Materias</title>

@@ -3,41 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <title>Login Docente</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- 👈 Escala adecuada en móviles -->
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/parametros.css') }}">
 </head>
 <body>
-<div class="container mt-5">
-  <div class="row justify-content-center">
-    <div class="col-md-6">
-      <div class="card shadow">
-        <div class="card-header bg-success text-white text-center">
-          <h4>Ingreso Docente</h4>
+<div class="container-fluid min-vh-100 d-flex justify-content-center align-items-center bg-light"> <!-- 👈 Ajuste a toda la pantalla -->
+  <div class="card shadow w-100 mx-3" style="max-width: 400px;"> <!-- 👈 Ancho máximo y padding lateral -->
+    <div class="card-header bg-success text-white text-center">
+      <h4>Ingreso Docente</h4>
+    </div>
+    <div class="card-body">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="alert alert-danger" role="alert">
+            {{ messages[0] }}
+          </div>
+        {% endif %}
+      {% endwith %}
+      <form method="POST" action="{{ url_for('login_docente') }}">
+        <div class="form-group">
+          <label for="usuario">Nombre de usuario:</label>
+          <input type="text" id="usuario" name="usuario" class="form-control" required>
         </div>
-        <div class="card-body">
-          {% with messages = get_flashed_messages() %}
-            {% if messages %}
-              <div class="alert alert-danger" role="alert">
-                {{ messages[0] }}
-              </div>
-            {% endif %}
-          {% endwith %}
-          <form method="POST" action="{{ url_for('login_docente') }}">
-            <div class="form-group">
-              <label for="usuario">Nombre de usuario:</label>
-              <input type="text" id="usuario" name="usuario" class="form-control" required>
-            </div>
-            <div class="form-group">
-              <label for="contrasena">Contraseña:</label>
-              <input type="password" id="contrasena" name="contrasena" class="form-control" required>
-            </div>
-            <button type="submit" class="btn btn-success btn-block">Ingresar como Docente</button>
-          </form>
+        <div class="form-group">
+          <label for="contrasena">Contraseña:</label>
+          <input type="password" id="contrasena" name="contrasena" class="form-control" required>
         </div>
-        <div class="card-footer text-center">
-          <a href="{{ url_for('seleccionar_rol') }}">🔙 Volver a selección de rol</a>
-        </div>
-      </div>
+        <button type="submit" class="btn btn-success btn-block">Ingresar como Docente</button>
+      </form>
+    </div>
+    <div class="card-footer text-center">
+      <a href="{{ url_for('seleccionar_rol') }}">🔙 Volver a selección de rol</a>
     </div>
   </div>
 </div>

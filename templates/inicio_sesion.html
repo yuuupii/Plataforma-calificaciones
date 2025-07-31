@@ -46,17 +46,17 @@
         }
 
         .login-container .logo-sep {
-            width: 100%;
-            position: static;
+            width: 75%;
+            position: absolute;
             top: 4%;
             left: 35%;
-            transform: translateX(-40%); /* Puedes ajustar este valor para moverlo más o menos */
+            transform: translateX(-60%); /* Puedes ajustar este valor para moverlo más o menos */
         }
 
         .login-container .logo-enuf {
             width: 30%; /* Ajuste del tamaño del logo ENUF */
             top: 4%; /* Ajuste de la posición */
-            right: 25%;
+            right: 0%;
         }
 
         .login-container h1 {
@@ -193,7 +193,7 @@
                 font-size: 0.95rem;
             }
 
-            .logo-sep, .logo-enuf {
+            .logo-enuf {
                 display: block;
                 width: 75%;
                 top: 4%;
@@ -203,6 +203,16 @@
                 object-fit: contain;
             }
 
+            .logo-sep {
+                display: block;
+                width: 75%;
+                top: 4%;
+                position: static;
+                max-width: 50%;
+                margin: 0 auto 10px auto;
+                object-fit: contain;
+            }
+            
             .logo-wrapper {
                 flex-direction: column;
                 gap: 10px;

@@ -1,17 +1,36 @@
 <!DOCTYPE html>
 <html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Actualizar Contraseña</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Bootstrap -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  
+  <!-- Estilo personalizado -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parametros.css') }}">
+
   <style>
+    body {
+      background-color: #f8f9fa;
+    }
+
+    .card {
+      border-radius: 1rem;
+    }
+
     @media screen and (max-width: 767px) {
       .card {
-        box-shadow: none !important;
-        border: none !important;
-        background-color: transparent !important;
+        box-shadow: none;
+        border: none;
+        background-color: transparent;
       }
 
       .card-header,
       .card-footer {
-        background-color: transparent !important;
-        border: none !important;
+        background-color: transparent;
+        border: none;
         text-align: center;
         padding: 0.5rem;
       }
@@ -23,21 +42,13 @@
       }
 
       .card-body {
-        padding: 0 !important;
+        padding: 0.5rem;
       }
 
-      .form-group {
-        margin-bottom: 1rem;
-      }
-
-      .form-control {
-        font-size: 0.95rem;
-      }
-
+      .form-control,
       .btn-block {
         font-size: 0.95rem;
         padding: 10px;
-        width: 100%;
       }
 
       .container {
@@ -46,31 +57,32 @@
       }
     }
   </style>
-<head>
-  <meta charset="UTF-8">
-  <title>Actualizar Contraseña</title>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/parametros.css') }}">
 </head>
 <body>
-<div class="container mt-5">
-  <div class="card">
-    <div class="card-header bg-warning text-white text-center">
-      <h4>Actualizar Contraseña de {{ tipo|capitalize }} "{{ usuario['usuario'] }}"</h4>
-    </div>
-    <div class="card-body">
-      <form method="POST">
-        <div class="form-group">
-          <label for="nueva_contrasena">Nueva contraseña:</label>
-          <input type="password" name="nueva_contrasena" id="nueva_contrasena" class="form-control" required>
-        </div>
-        <button type="submit" class="btn btn-warning btn-block">Actualizar</button>
-      </form>
-    </div>
-    <div class="card-footer text-center">
-      <a href="{{ url_for('registrar_usuario') }}">🔙 Volver al panel</a>
+
+<div class="container min-vh-100 d-flex justify-content-center align-items-center">
+  <div class="w-100" style="max-width: 400px;">
+    <div class="card shadow">
+      <div class="card-header bg-warning text-white text-center">
+        <h4>Actualizar Contraseña de {{ tipo|capitalize }} "{{ usuario['usuario'] }}"</h4>
+      </div>
+
+      <div class="card-body">
+        <form method="POST">
+          <div class="form-group">
+            <label for="nueva_contrasena">Nueva contraseña:</label>
+            <input type="password" name="nueva_contrasena" id="nueva_contrasena" class="form-control" required>
+          </div>
+          <button type="submit" class="btn btn-warning btn-block">Actualizar</button>
+        </form>
+      </div>
+
+      <div class="card-footer text-center">
+        <a href="{{ url_for('registrar_usuario') }}">🔙 Volver al panel</a>
+      </div>
     </div>
   </div>
 </div>
+
 </body>
 </html>

@@ -8,6 +8,9 @@ from materias_util import verificar_materia_duplicada, eliminar_materias_duplica
 from flask import g
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf import FlaskForm
+from markupsafe import Markup
+from models import Estudiante
+from flask import request, jsonify
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -276,9 +279,9 @@ def actualizar_usuario():
 
 @app.route('/cambiar-contrasena', methods=['GET', 'POST'])
 def cambiar_contrasena():
-    if 'user_id' not in session or session.get('usuario_tipo') != 'docente':
-        flash('Acceso restringido. Inicia sesión como docente.')
-        return redirect(url_for('login_docente'))
+    if 'user_id' not in session or session.get('usuario_tipo') not in ['docente', 'admin']:
+        flash('Acceso restringido.')
+        return redirect(url_for('login'))
 
     conn = get_db_connection()
 
@@ -310,7 +313,7 @@ def cambiar_contrasena():
         return redirect(url_for('cambiar_contrasena'))
 
     conn.close()
-    return render_template('cambiar_contrasena.html')
+    return render_template('cambiar_contrasena.html', tipo=session.get('usuario_tipo'))
 
 @app.route('/logout')
 def logout():
@@ -647,16 +650,53 @@ def guardar_calificacion():
                 (alumno_id, materia_id, calificacion)
             )
             mensaje = '✅ Calificación registrada con éxito.'
-
         conn.commit()
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'exito': True, 'mensaje': mensaje})
 
     except Exception as e:
         mensaje = f'⚠️ Error al guardar la calificación: {str(e)}'
-
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'exito': False, 'mensaje': mensaje})
     finally:
         conn.close()
 
+    # Si no es AJAX, redirige (por si quieres usarlo desde un formulario normal)
     return redirect(url_for('registrar_calificacion', mensaje=mensaje))
+
+@app.route('/actualizar_semestre_alumnos', methods=['POST'])
+def actualizar_semestre_alumnos():
+    licenciatura = request.form.get('licenciatura')
+    semestre_actual = request.form.get('semestre_actual')
+    semestre_destino = request.form.get('semestre_destino')
+
+    if not (licenciatura and semestre_actual and semestre_destino):
+        return "Faltan datos", 400
+
+    try:
+        semestre_actual_int = int(semestre_actual)
+        semestre_destino_int = int(semestre_destino)
+    except ValueError:
+        return "Semestres deben ser números", 400
+
+    if semestre_destino_int < 1:
+        return "El semestre destino no puede ser menor que 1", 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        'UPDATE estudiantes SET semestre = ? WHERE licenciatura = ? AND semestre = ?',
+        (semestre_destino_int, licenciatura, semestre_actual_int)
+    )
+    filas_actualizadas = cursor.rowcount
+    conn.commit()
+    conn.close()
+
+    if filas_actualizadas == 0:
+        return jsonify({'error': 'No se encontraron alumnos en ese semestre.'}), 404
+
+    return jsonify({'mensaje': 'Semestres actualizados correctamente'})
 
 @app.route('/historial')
 def historial_academico():
@@ -705,6 +745,52 @@ def historial_academico():
     return render_template('historial_academico.html',
                            historial=historial,
                            promedios_por_semestre=promedios_por_semestre)
+
+@app.route('/ver_historial/<int:estudiante_id>')
+def ver_historial_estudiante(estudiante_id):
+    conn = get_db_connection()
+
+    resultado = conn.execute('''
+        SELECT e.nombre AS estudiante,
+               m.licenciatura,
+               m.semestre,
+               m.nombre AS materia,
+               c.calificacion
+        FROM calificaciones c
+        JOIN materias m ON c.materia = m.id
+        JOIN estudiantes e ON c.user_id = e.id
+        WHERE c.user_id = ?
+        ORDER BY m.licenciatura, m.semestre, m.nombre
+    ''', (estudiante_id,)).fetchall()
+
+    conn.close()
+
+    if not resultado:
+        flash('Este estudiante aún no tiene calificaciones registradas.', 'warning')
+        return redirect(url_for('catalogo_alumnos'))  # Ajusta según tu flujo
+
+    historial = {}
+    promedios_por_semestre = {}
+
+    for fila in resultado:
+        lic = fila['licenciatura']
+        sem = int(fila['semestre'])
+        historial.setdefault(lic, {}).setdefault(sem, []).append({
+            'materia': fila['materia'],
+            'calificacion': fila['calificacion']
+        })
+        promedios_por_semestre.setdefault(sem, []).append(fila['calificacion'])
+
+    promedios_por_semestre = {
+        sem: round(sum(califs) / len(califs), 1)
+        for sem, califs in promedios_por_semestre.items()
+    }
+
+    return render_template('historial_academico.html',
+                           estudiante=resultado[0]['estudiante'],
+                           historial=historial,
+                           promedios_por_semestre=promedios_por_semestre)
+
 
 @app.route('/update_calificacion', methods=['POST'])
 def update_calificacion():

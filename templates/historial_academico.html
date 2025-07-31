@@ -26,6 +26,9 @@
 <body>
 <div class="container-fluid mt-5">
   <h2 class="text-center mb-4">Historial Académico</h2>
+  {% if estudiante %}
+    <h5 class="text-center text-muted mb-4">Estudiante: {{ estudiante }}</h5>
+  {% endif %}
 
   {% if historial %}
     {% for licenciatura, semestres in historial.items() %}

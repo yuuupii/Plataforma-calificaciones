@@ -1,20 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cambiar Contraseña</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parametros.css') }}">
   <style>
     @media screen and (max-width: 767px) {
-      form.shadow.bg-light {
-        box-shadow: none !important;
-        background-color: transparent !important;
-        padding: 0 !important;
-        border-radius: 0 !important;
-      }
-
-      .container {
-        margin-top: 1rem !important;
-        padding: 0 0.5rem;
-      }
-
-      .form-group {
+      .card-header h2 {
+        font-size: 1.3rem;
         margin-bottom: 1rem;
       }
 
@@ -29,43 +24,48 @@
       }
     }
   </style>
-<head>
-  <meta charset="UTF-8">
-  <title>Cambiar Contraseña</title>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/parametros.css') }}">
 </head>
 <body>
-<div class="container mt-5">
-  <h2 class="text-center mb-4">🔐 Cambiar Contraseña</h2>
+  <div class="container-fluid min-vh-100 d-flex justify-content-center align-items-center bg-light">
+    <div class="w-100 mx-3" style="max-width: 400px;">
+      <div class="card shadow rounded p-4 bg-white">
+        <h2 class="text-center mb-4">🔐 Cambiar Contraseña</h2>
 
-  {% with messages = get_flashed_messages() %}
-    {% if messages %}
-      <div class="alert alert-info">
-        {{ messages[0] }}
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="alert alert-info">
+              {{ messages[0] }}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+          <div class="form-group">
+            <label for="actual">Contraseña actual:</label>
+            <input type="password" id="actual" name="contrasena_actual" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label for="nueva">Nueva contraseña:</label>
+            <input type="password" id="nueva" name="nueva_contrasena" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label for="confirmar">Confirmar nueva contraseña:</label>
+            <input type="password" id="confirmar" name="confirmar_contrasena" class="form-control" required>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">Actualizar contraseña</button>
+          {% if tipo == 'docente' %}
+            <a href="{{ url_for('menu_docente') }}" class="btn btn-secondary btn-block mt-2">Volver al menú docente</a>
+          {% elif tipo == 'admin' %}
+            <a href="{{ url_for('menu_admin') }}" class="btn btn-secondary btn-block mt-2">Volver al menú administrativo</a>
+          {% else %}
+            <a href="/" class="btn btn-secondary btn-block mt-2">Volver al inicio</a>
+          {% endif %}
+        </form>
       </div>
-    {% endif %}
-  {% endwith %}
-
-  <form method="POST" class="shadow p-4 rounded bg-light">
-    <div class="form-group">
-      <label for="actual">Contraseña actual:</label>
-      <input type="password" id="actual" name="contrasena_actual" class="form-control" required>
     </div>
-
-    <div class="form-group">
-      <label for="nueva">Nueva contraseña:</label>
-      <input type="password" id="nueva" name="nueva_contrasena" class="form-control" required>
-    </div>
-
-    <div class="form-group">
-      <label for="confirmar">Confirmar nueva contraseña:</label>
-      <input type="password" id="confirmar" name="confirmar_contrasena" class="form-control" required>
-    </div>
-
-    <button type="submit" class="btn btn-primary btn-block">Actualizar contraseña</button>
-    <a href="{{ url_for('menu_docente') }}" class="btn btn-secondary btn-block mt-2">Volver al menú</a>
-  </form>
-</div>
+  </div>
 </body>
 </html>

@@ -1,51 +1,49 @@
 <!DOCTYPE html>
 <html lang="es">
-  <style>
-    @media screen and (max-width: 576px) {
-    body {
-      padding: 0;
-      margin: 0;
-      background-color: #f8f9fa;
-    }
-
-    .container {
-      width: 100% !important;
-      padding-left: 8px;
-      padding-right: 8px;
-    }
-
-    .card {
-      border-radius: 0;
-      box-shadow: none;
-      border: none;
-    }
-
-    .card-footer {
-      background: transparent;
-      border: none;
-    }
-
-    .btn {
-      width: 100%;
-      font-size: 1rem;
-      padding: 12px;
-    }
-  }
-  </style>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel Docente</title>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/parametros.css') }}">
+  <style>
+    @media screen and (max-width: 576px) {
+      body {
+        padding: 0;
+        margin: 0;
+        background-color: #f8f9fa;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+
+      p {
+        font-size: 1rem;
+      }
+
+      .btn {
+        font-size: 0.95rem;
+        padding: 12px;
+      }
+
+      .btn-link {
+        font-size: 0.9rem;
+      }
+
+      .list-group-item {
+        padding: 0.75rem 0.5rem;
+      }
+    }
+  </style>
 </head>
 <body>
-<div class="container mt-4">
-  <div class="text-center mb-4">
-    <h2>Bienvenido, {{ session['usuario'] }} 👨‍🏫</h2>
-    <p>Selecciona una opción para continuar:</p>
-  </div>
-  <div class="row justify-content-center">
-    <div class="col-md-8">
+  <div class="container-fluid min-vh-100 d-flex flex-column justify-content-center align-items-center bg-light px-3">
+    <div class="w-100" style="max-width: 400px;">
+      <div class="text-center mb-4">
+        <h2>Bienvenido, {{ session['usuario'] }} 👨‍🏫</h2>
+        <p>Selecciona una opción para continuar:</p>
+      </div>
       <div class="card shadow">
         <div class="card-body">
           <ul class="list-group">
@@ -64,19 +62,16 @@
             <li class="list-group-item">
               <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-block">🔓 Cerrar sesión</a>
             </li>
-            <li class="list-group-item">
-                <div class="text-center mt-3">
-                  <a href="{{ url_for('registrar_usuario_publico') }}" class="btn btn-link">¿No tienes cuenta? Regístrate aquí</a>
-                </div>
+            <li class="list-group-item text-center">
+              <a href="{{ url_for('registrar_usuario_publico') }}" class="btn btn-link">¿No tienes cuenta? Regístrate aquí</a>
             </li>
           </ul>
+        </div>
+        <div class="card-footer text-center bg-light border-0">
+          <a href="{{ url_for('seleccionar_rol') }}">🔙 Volver al inicio</a>
         </div>
       </div>
     </div>
   </div>
-</div>
-    <div class="card-footer text-center">
-      <a href="{{ url_for('registrar_usuario') }}">🔙 Volver al inicio</a>
-    </div>
 </body>
 </html>

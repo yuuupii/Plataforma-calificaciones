@@ -1,7 +1,23 @@
 <!DOCTYPE html>
 <html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Registro de Usuarios</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parametros.css') }}">
+</head>
   <style>
     @media screen and (max-width: 767px) {
+      .table td a.btn {
+        display: inline-block;
+        margin-bottom: 0.5rem;
+      }
+
+      .table-responsive {
+        overflow-x: auto;
+      }
+
       .card {
         box-shadow: none !important;
         border: none !important;
@@ -67,14 +83,24 @@
         font-size: 0.85rem;
         padding: 6px 10px;
       }
+
+      body, html {
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow-x: hidden;
+      }
+
+      .container {
+        margin: 0 auto !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+      }
+
+      .mt-5 {
+        margin-top: 2rem !important;
+      }
     }
   </style>
-<head>
-  <meta charset="UTF-8">
-  <title>Registro de Usuarios</title>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/parametros.css') }}">
-</head>
 <body>
 <div class="container mt-5">
   <div class="card">

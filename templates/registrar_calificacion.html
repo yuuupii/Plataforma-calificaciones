@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <meta charset="UTF-8">
   <script id="datos-json" type="application/json">
     {
       "materias": {{ materias | tojson | safe }},
       "alumnos": {{ alumnos | tojson | safe }}
     }
   </script>
-  <meta charset="UTF-8">
   <title>Registrar Calificación</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet"
@@ -111,31 +111,39 @@
 <!-- ✅ FORMULARIO: Registrar calificación por pasos -->
 <h4 class="mt-5">📝 Registrar calificación</h4>
 
-<!-- Paso 1 -->
+<!-- Paso 1: Licenciatura -->
 <div id="paso1" class="paso activo">
-  <label for="semestre_filtro">📘 Selecciona un semestre</label>
-  <select id="semestre_filtro" class="form-control">
-    <option value="">Selecciona un semestre</option>
-    {% for s in range(1, 8) %}
-      <option value="{{ s }}">{{ s }}° semestre</option>
-    {% endfor %}
+  <label for="licenciatura_filtro">🎓 Selecciona una licenciatura</label>
+  <select id="licenciatura_filtro" class="form-control" required>
+    <option value="">Selecciona una licenciatura</option>
+    <option value="Matematicas">Licenciatura en Enseñanza y Aprendizaje de las Matemáticas</option>
+    <option value="Primaria">Licenciatura en Educación primaria</option>
+    <option value="Español">Licenciatura en Enseñanza y Aprendizaje del Español</option>
   </select>
 </div>
 
-<!-- Paso 2 -->
+<!-- Paso 2: Semestre -->
 <div id="paso2" class="paso">
+  <label for="semestre_filtro">📘 Selecciona un semestre</label>
+  <select id="semestre_filtro" class="form-control" required disabled>
+    <option value="">Selecciona un semestre</option>
+  </select>
+</div>
+
+<!-- Paso 3: Materia -->
+<div id="paso3" class="paso">
   <label for="materia">📚 Elige una materia</label>
-  <select id="materia" class="form-control" required>
-  <option value="" disabled selected>Seleccione una materia de la lista</option>
+  <select id="materia" class="form-control" required disabled>
+    <option value="" disabled selected>Seleccione una materia de la lista</option>
   </select>
   <div id="error-materia" class="invalid-feedback">
-  ⚠️ Debes seleccionar una materia para continuar.
+    ⚠️ Debes seleccionar una materia para continuar.
   </div>
 </div>
 
-<!-- Paso 3 -->
-<div id="paso3" class="paso">
-  <form method="POST" action="{{ url_for('guardar_calificacion') }}">
+<!-- Paso 4: Registrar calificación -->
+<div id="paso4" class="paso">
+  <form id="form-calificacion">
     <div class="form-group">
       <label for="alumno">👨‍🎓 Selecciona un alumno</label>
       <select name="alumno_id" id="alumno" class="form-control" required>
@@ -146,8 +154,11 @@
       <label for="calificacion">Calificación:</label>
       <input type="number" name="calificacion" id="calificacion" class="form-control" min="0" max="100" required>
     </div>
+    <!-- Estos inputs ocultos se llenarán desde JS si es necesario -->
     <input type="hidden" name="materia_id" id="materia_hidden">
     <input type="hidden" name="semestre" id="semestre_hidden">
+    <input type="hidden" name="licenciatura" id="licenciatura_hidden">
+
     <button type="submit" class="btn btn-success btn-block">Guardar Calificación</button>
   </form>
 </div>
@@ -156,19 +167,32 @@
 <hr class="my-5">
 <h4 class="mb-4 text-dark">📚 Catálogo de Alumnos</h4>
 <div id="alumnos-por-licenciatura">
-    <div id="alerta-eliminado" class="alert alert-success text-center" style="display: none;">
-  Alumno eliminado con éxito.
-</div>
+  <div id="alerta-eliminado" class="alert alert-success text-center" style="display: none;">
+    Alumno eliminado con éxito.
+  </div>
+
   {% for licenciatura, alumnos_por_semestre in alumnos_agrupados.items() %}
   <div class="card mb-3">
     <div class="card-header bg-dark d-flex justify-content-between align-items-center text-white">
       <div>
-        <a class="acordeon-boton text-dark" data-toggle="collapse" href="#{{ licenciatura | replace(' ', '_') }}">
+        <a class="acordeon-boton text-dark"
+           data-toggle="collapse"
+           href="#{{ licenciatura | replace(' ', '_') }}">
           {{ licenciatura }} <span class="rotate-icon ml-2">&#9662;</span>
         </a>
       </div>
       <div class="lupa-area d-flex align-items-center position-relative">
-        <button class="btn btn-sm btn-light lupa-buscar" data-licenciatura="{{ licenciatura | replace(' ', '_') }}">
+          <button type="button"
+                class="btn btn-sm btn-warning actualizar-semestre"
+                data-licenciatura="{{ licenciatura }}"
+                title="Actualizar semestre de todos los alumnos de esta licenciatura">
+          <i class="fas fa-arrow-up"></i> Actualizar semestre
+          </button>
+        <button type="button"
+                class="btn btn-sm btn-light lupa-buscar"
+                data-licenciatura="{{ licenciatura | replace(' ', '_') }}"
+                aria-label="Buscar calificaciones de {{ licenciatura }}"
+                title="Buscar">
           <i class="fas fa-search"></i>
         </button>
         <div class="buscador-licenciatura position-absolute ml-2"
@@ -215,20 +239,21 @@
             </thead>
             <tbody>
               {% for alumno in alumnos %}
-              <tr id="alumno-{{ alumno.id }}" class="fila-alumno fila-{{ licenciatura | replace(' ', '_') }}
-                         {% if loop.index0 % 2 == 0 %}fila-clara{% else %}fila-suave{% endif %}">
+              <tr id="alumno-{{ alumno.id }}"
+                  class="fila-alumno fila-{{ licenciatura | replace(' ', '_') }} {% if loop.index0 % 2 == 0 %}fila-clara{% else %}fila-suave{% endif %}">
                 <td>{{ alumno.nombre }}</td>
                 <td>{{ alumno.matricula }}</td>
                 <td class="text-center">
-                    <a href="{{ url_for('historial_academico', alumno_id=alumno.id) }}"
-                    class="btn btn-sm btn-info"
-                    title="Ver historial académico">
+                  <a href="{{ url_for('ver_historial_estudiante', estudiante_id=alumno.id) }}"
+                     class="btn btn-sm btn-info"
+                     title="Ver historial académico">
                     <i class="fas fa-book"></i>
-                    </a>
+                  </a>
                   <button type="button"
                           class="btn btn-sm btn-light eliminar-alumno"
                           data-id="{{ alumno.id }}"
-                          title="Eliminar alumno">
+                          title="Eliminar alumno"
+                          aria-label="Eliminar alumno">
                     <i class="fas fa-trash-alt text-danger"></i>
                   </button>
                 </td>
@@ -264,7 +289,6 @@
   transition: opacity 0.5s ease, transform 0.5s ease;
   margin-bottom: 20px;
 }
-
 .paso.activo {
   opacity: 1;
   transform: translateY(0);
@@ -272,9 +296,11 @@
 </style>
 
 <script>
-$(document).ready(function () {
+$(function () {
+  function normalizar(texto) {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
   let animacionActiva = false;
-
   // ============================
   // 🎓 FILTRO DINÁMICO DE CALIFICACIÓN
   // ============================
@@ -283,237 +309,225 @@ $(document).ready(function () {
   const todasMaterias = datos.materias;
   const todosAlumnos = datos.alumnos;
 
-  // Evento: selección de semestre
-  $('#semestre_filtro').on('change', function () {
-    const semestre = $(this).val();
-    $('#materia').prop('disabled', false);
-
-    let opciones = '<option value="">Selecciona una materia</option>';
-    todasMaterias.forEach(m => {
-      if (parseInt(m.semestre) === parseInt(semestre)) {
-        opciones += `<option value="${m.id}">${m.nombre} (${m.licenciatura})</option>`;
-      }
-    });
-
-    $('#materia').html(opciones);
-    $('#registro-calificacion').hide();
-
-    // Validación visual (opcional)
-    if (opciones === '<option value="">Selecciona una materia</option>') {
-      alert('No hay materias registradas para el semestre seleccionado.');
-    }
-  });
-
-  // Evento: selección de materia
-  $('#materia').on('change', function () {
-    const materiaId = $(this).val();
-    const semestre = $('#semestre_filtro').val();
-
-    if (!materiaId || !semestre) {
-      $('#registro-calificacion').hide();
-      return;
-    }
-
-    $('#materia_hidden').val(materiaId);
-    $('#semestre_hidden').val(semestre);
-
-    const alumnosFiltrados = todosAlumnos.filter(a => String(a.semestre) === semestre);
-
-    if (alumnosFiltrados.length === 0) {
-      $('#registro-calificacion').hide();
-      alert('No hay alumnos registrados en ese semestre.');
-      return;
-    }
-
-    let opciones = '<option value="">Selecciona un alumno</option>';
-    alumnosFiltrados.forEach(a => {
-      opciones += `<option value="${a.id}">${a.nombre} (${a.licenciatura})</option>`;
-    });
-
-    $('#alumno').html(opciones);
-    $('#registro-calificacion').fadeIn();
-  });
-});
-
-$(document).ready(function () {
-  const rawJson = document.getElementById('datos-json').textContent;
-  const datos = JSON.parse(rawJson);
-  const todasMaterias = datos.materias;
-  const todosAlumnos = datos.alumnos;
-
-function cargarMaterias(materias) {
-  const materiaSelect = document.getElementById("materia");
-
-  // ✅ 1. Limpiar opciones anteriores
-  materiaSelect.innerHTML = ''; // 🧹 borra todas las opciones previas
-
-  // ✅ 2. Reponer opción por defecto
-  materiaSelect.innerHTML = '<option value="" disabled selected>Seleccione una materia de la lista</option>';
-
-  // ✅ 3. Agregar nuevas opciones desde tu array de materias
-  materias.forEach(m => {
-    materiaSelect.innerHTML += `<option value="${m.id}">${m.nombre}</option>`;
-  });
-
-  // ✅ 4. Habilitar el campo si estaba deshabilitado
-  materiaSelect.disabled = false;
-}
-
-  // Paso 1: Semestre
-  $('#semestre_filtro').on('change', function () {
-    const semestre = $(this).val();
-    $('#materia').prop('disabled', false);
+  $('#licenciatura_filtro').on('change', function () {
+    const lic = $(this).val();
+    $('#semestre_filtro').prop('disabled', !lic);
     $('#paso2').addClass('activo');
+    $('#paso3, #paso4').removeClass('activo');
+    $('#materia').prop('disabled', true).html('<option value="">Seleccione una materia</option>');
+    $('#alumno').html('<option value="">Seleccione un alumno</option>');
+    $('#registro-calificacion').hide();
 
-    let opciones = '<option value="">Selecciona una materia</option>';
-    todasMaterias.forEach(m => {
-      if (parseInt(m.semestre) === parseInt(semestre)) {
-        opciones += `<option value="${m.id}">${m.nombre} (${m.licenciatura})</option>`;
-      }
+    let opciones = '<option value="">Selecciona un semestre</option>';
+    for (let i = 1; i <= 7; i++) {
+      opciones += `<option value="${i}">${i}° semestre</option>`;
+    }
+    $('#semestre_filtro').html(opciones);
+  });
+
+  $('#semestre_filtro').on('change', function () {
+    const lic = $('#licenciatura_filtro').val();
+    const semestre = $(this).val();
+    if (!lic || !semestre) return;
+
+    $('#materia').prop('disabled', false);
+    $('#paso3').addClass('activo');
+
+    const materiasFiltradas = todasMaterias.filter(m =>
+      m.licenciatura === lic && parseInt(m.semestre) === parseInt(semestre)
+    );
+
+    let opciones = '<option value="">Seleccione una materia</option>';
+    materiasFiltradas.forEach(m => {
+      opciones += `<option value="${m.id}">${m.nombre}</option>`;
     });
 
     $('#materia').html(opciones);
     $('#registro-calificacion').hide();
   });
 
-  // Paso 2: Materia
   $('#materia').on('change', function () {
     const materiaId = $(this).val();
     const semestre = $('#semestre_filtro').val();
-
-    if (!materiaId || !semestre) {
-      $('#registro-calificacion').hide();
-      return;
-    }
+    const licenciatura = $('#licenciatura_filtro').val();
+    if (!materiaId || !semestre || !licenciatura) return;
 
     $('#materia_hidden').val(materiaId);
     $('#semestre_hidden').val(semestre);
+    $('#licenciatura_hidden').val(licenciatura);
 
-    const alumnosFiltrados = todosAlumnos.filter(a => parseInt(a.semestre) === parseInt(semestre));
+    const alumnosFiltrados = todosAlumnos.filter(a =>
+      a.licenciatura === licenciatura && parseInt(a.semestre) === parseInt(semestre)
+    );
 
     let opciones = '<option value="">Selecciona un alumno</option>';
     alumnosFiltrados.forEach(a => {
-      opciones += `<option value="${a.id}">${a.nombre} (${a.licenciatura})</option>`;
+      opciones += `<option value="${a.id}">${a.nombre} (${a.matricula})</option>`;
     });
 
     $('#alumno').html(opciones);
-    $('#paso3').addClass('activo');
+    $('#paso4').addClass('activo');
     $('#registro-calificacion').fadeIn();
+  });
+
+  $('#paso4 form').on('submit', function (e) {
+    e.preventDefault();
+
+    const alumnoId = $('#alumno').val();
+    const materiaId = $('#materia').val();
+    const calificacion = $('#calificacion').val();
+    const resumen = `
+      ¿Deseas guardar esta calificación?\n
+      🎓 Licenciatura: ${$('#licenciatura_filtro option:selected').text()}
+      📘 Semestre: ${$('#semestre_filtro option:selected').text()}
+      📚 Materia: ${$('#materia option:selected').text()}
+      👨‍🎓 Alumno: ${$('#alumno option:selected').text()}
+      📝 Calificación: ${calificacion}
+    `;
+
+    if (!alumnoId || !materiaId || calificacion === '') {
+      alert('⚠️ Completa todos los campos antes de guardar.');
+      return;
+    }
+
+    if (isNaN(calificacion) || calificacion < 0 || calificacion > 10) {
+      alert('⚠️ La calificación debe estar entre 0 y 10.');
+      return;
+    }
+
+    if (!confirm(resumen)) return;
+
+    fetch('/guardar-calificacion', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: new URLSearchParams({
+        alumno_id: alumnoId,
+        materia_id: materiaId,
+        calificacion: calificacion
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.exito) {
+        alert(data.mensaje);
+        $('#alumno').val('');
+        $('#calificacion').val('');
+      } else {
+        alert(data.mensaje);
+      }
+    })
+    .catch(() => alert('❌ No se pudo conectar con el servidor.'));
   });
 });
 
-$('#paso3 form').on('submit', function (e) {
-  e.preventDefault();
+// ============================
+// 🕵️‍♂️ BUSCADOR LOCAL DE ALUMNOS
+// ============================
 
-  const materia = $('#materia').val();
-  const alumno = $('#alumno').val();
-  const calificacion = $('#calificacion').val();
+let animacionActiva = true;
 
-  if (!materia || !alumno || calificacion === '') {
-    alert('⚠️ Por favor, selecciona una materia, un alumno y escribe una calificación antes de guardar.');
+$('.lupa-buscar').on('click', function (e) {
+  e.stopPropagation();
+  const lic = $(this).data('licenciatura');
+  const $buscador = $('#buscador-' + lic);
+  const $collapse = $('#' + lic);
+
+  $('.buscador-licenciatura').not($buscador).removeClass('activo');
+  $buscador.toggleClass('activo');
+
+  if (!$collapse.hasClass('show')) {
+    $collapse.collapse('show');
+  }
+
+  $buscador.find('.input-busqueda-local').val('');
+  $('.fila-' + lic).show();
+  $buscador.find('.sin-resultados-local').hide();
+});
+
+$('.input-busqueda-local').on('input', async function () {
+  const lic = $(this).data('licenciatura');
+  const filtro = $(this).val().toLowerCase();
+  const $buscador = $('#buscador-' + lic);
+  const $alerta = $buscador.find('.sin-resultados-local');
+  let encontrados = 0;
+
+  const $objetivo = $('.fila-' + lic).filter(function () {
+    const visible = $(this).text().toLowerCase().includes(filtro);
+    $(this).toggle(visible);
+    if (visible) encontrados++;
+    return visible;
+  }).first();
+
+  $alerta.toggle(encontrados === 0);
+
+  if (!filtro || encontrados === 0 || !animacionActiva) return;
+
+  const idSemestre = $objetivo.closest('div[id^="' + lic + '_"]').attr('id');
+  const $semestre = $('#' + idSemestre);
+  const $licenciatura = $('#' + lic);
+
+  if (!$licenciatura.hasClass('show')) $licenciatura.collapse('show');
+  await esperarVisible($licenciatura);
+
+  if (!$semestre.hasClass('show')) $semestre.collapse('show');
+  const visibleSemestre = await esperarVisible($semestre);
+
+  if (!visibleSemestre) {
+    $buscador.prepend(`
+      <div class="alert alert-info alerta-scroll-fallido py-1 px-2 mb-2 text-center small">
+        Despliega manualmente el semestre para ver el resultado.
+      </div>
+    `);
+    setTimeout(() => $('.alerta-scroll-fallido').fadeOut(500, function () {
+      $(this).remove();
+    }), 3000);
     return;
   }
 
-  // Confirmación previa
-  const resumen = `
-    ¿Deseas guardar esta calificación?\n
-    📘 Semestre: ${$('#semestre_filtro option:selected').text()}
-    📚 Materia: ${$('#materia option:selected').text()}
-    👨‍🎓 Alumno: ${$('#alumno option:selected').text()}
-    📝 Calificación: ${calificacion}
-  `;
-  if (confirm(resumen)) {
-    this.submit();
+  animacionActiva = true;
+  
+  // Realiza scroll hacia el alumno encontrado
+  $('html, body').animate({
+    scrollTop: $objetivo.offset().top - 100
+  }, 500, () => {
+    $('.table-warning').removeClass('table-warning'); // 🔹 Elimina resaltados anteriores
+    $objetivo.addClass('table-warning');              // 🔸 Aplica nuevo resaltado
+    setTimeout(() => {
+      $objetivo.removeClass('table-warning');
+    }, 1500);
+  });
+});
+
+function esperarVisible($elem, intentos = 0) {
+  return new Promise(resolve => {
+    const check = setInterval(() => {
+      const visible = $elem.is(':visible') && $elem[0].scrollHeight > 0;
+      if (visible || intentos++ > 20) {
+        clearInterval(check);
+        resolve(visible);
+      }
+    }, 50);
+  });
+}
+
+// 🔄 Ocultar buscadores al hacer clic fuera
+$(document).on('click', function (e) {
+  if (!$(e.target).closest('.lupa-area').length) {
+    $('.buscador-licenciatura').removeClass('activo');
   }
 });
 
-  // ============================
-  // 🕵️‍♂️ BUSCADOR LOCAL DE ALUMNOS
-  // ============================
+// 🔄 Girar flechas de acordeón
+$('.collapse').on('show.bs.collapse', function () {
+  $(this).prev().find('.rotate-icon').addClass('rotado');
+}).on('hide.bs.collapse', function () {
+  $(this).prev().find('.rotate-icon').removeClass('rotado');
+});
 
-  $('.lupa-buscar').on('click', function (e) {
-    e.stopPropagation();
-    const lic = $(this).data('licenciatura');
-    const $buscador = $('#buscador-' + lic);
-    const $collapse = $('#' + lic);
-
-    $('.buscador-licenciatura').not($buscador).removeClass('activo');
-    $buscador.toggleClass('activo');
-
-    if (!$collapse.hasClass('show')) {
-      $collapse.collapse('show');
-    }
-
-    $buscador.find('.input-busqueda-local').val('');
-    $('.fila-' + lic).show();
-    $buscador.find('.sin-resultados-local').hide();
-  });
-
-  $('.input-busqueda-local').on('input', async function () {
-    const lic = $(this).data('licenciatura');
-    const filtro = $(this).val().toLowerCase();
-    const $alerta = $('#buscador-' + lic + ' .sin-resultados-local');
-
-    let $objetivo = null;
-    let encontrados = 0;
-
-    $('.fila-' + lic).each(function () {
-      const visible = $(this).text().toLowerCase().includes(filtro);
-      $(this).toggle(visible);
-      if (visible && !$objetivo) $objetivo = $(this), encontrados++;
-      else if (visible) encontrados++;
-    });
-
-    $alerta.toggle(encontrados === 0);
-
-    if (!filtro || encontrados === 0 || animacionActiva) return;
-
-    const $semestre = $objetivo.closest('.collapse');
-    const $licenciatura = $semestre.closest('.collapse');
-
-    if (!$licenciatura.hasClass('show')) $licenciatura.collapse('show');
-    await esperarVisible($licenciatura);
-
-    if (!$semestre.hasClass('show')) $semestre.collapse('show');
-    await esperarVisible($semestre);
-
-    animacionActiva = true;
-    $('html, body').animate({
-      scrollTop: $objetivo.offset().top - 100
-    }, 500, () => {
-      $objetivo.addClass('table-warning');
-      setTimeout(() => {
-        $objetivo.removeClass('table-warning');
-        animacionActiva = false;
-      }, 1500);
-    });
-  });
-
-  function esperarVisible($elem, intentos = 0) {
-    return new Promise(resolve => {
-      const check = setInterval(() => {
-        const visible = $elem.is(':visible') && $elem[0].scrollHeight > 0;
-        if (visible || intentos++ > 20) {
-          clearInterval(check);
-          resolve();
-        }
-      }, 50);
-    });
-  }
-
-  $(document).on('click', function (e) {
-    if (!$(e.target).closest('.lupa-area').length) {
-      $('.buscador-licenciatura').removeClass('activo');
-    }
-  });
-
-  $('.collapse').on('show.bs.collapse', function () {
-    $(this).prev().find('.rotate-icon').addClass('rotado');
-  }).on('hide.bs.collapse', function () {
-    $(this).prev().find('.rotate-icon').removeClass('rotado');
-  });
-
-  // 🔥 Eliminar alumno vía AJAX
+// 🔥 Eliminar alumno vía AJAX
 $('.eliminar-alumno').on('click', function () {
   const id = $(this).data('id');
   const $fila = $('#alumno-' + id);
@@ -533,10 +547,49 @@ $('.eliminar-alumno').on('click', function () {
       $fila.fadeOut(300, () => $fila.remove());
       $('#alerta-eliminado').fadeIn(300).delay(1500).fadeOut(500);
     } else {
-      alert('Error al eliminar el alumno.');
+      alert('❌ Error al eliminar el alumno.');
     }
   })
-  .catch(() => alert('No se pudo conectar con el servidor.'));
+  .catch(() => {
+    alert('⚠️ No se pudo conectar con el servidor.');
+  });
+});
+
+// 🧠 Avanzar semestre de todos los alumnos de cierta licenciatura
+$('.actualizar-semestre').on('click', function () {
+  const licenciatura = $(this).data('licenciatura');
+
+  const semestreActual = prompt(`¿Cuál es el semestre actual que cursan los alumnos de "${licenciatura}"?`, '');
+  if (!semestreActual) return;
+
+  const semestreDestino = prompt(`¿A qué semestre quieres actualizar a los alumnos de "${licenciatura}" que están en el semestre ${semestreActual}?`, '');
+  if (!semestreDestino) return;
+
+  if (!confirm(`¿Estás seguro de que quieres cambiar a los alumnos de ${licenciatura} del semestre ${semestreActual} al semestre ${semestreDestino}?`)) return;
+
+  fetch('{{ url_for("actualizar_semestre_alumnos") }}', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    body: new URLSearchParams({
+      licenciatura,
+      semestre_actual: semestreActual,
+      semestre_destino: semestreDestino
+    })
+  })
+  .then(res => {
+    if (res.ok) {
+      alert('✅ Semestre actualizado con éxito. Recarga la página en caso de no ver los cambios.');
+      location.reload();
+    } else if (res.status === 404) {
+      alert('⚠️ No se encontraron alumnos en ese semestre con esa licenciatura.');
+    } else {
+      alert('❌ Hubo un error al actualizar los alumnos.');
+    }
+  })
+  .catch(() => alert('❌ No se pudo conectar con el servidor.'));
 });
 </script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>

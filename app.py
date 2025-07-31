@@ -465,20 +465,37 @@ def ver_calificaciones():
             return redirect(url_for('index'))  # Redirigir si el usuario no está autenticado
 
         conn = get_db_connection()
+
+        # Primero obtenemos el semestre actual del estudiante
+        estudiante = conn.execute(
+            'SELECT nombre, semestre FROM estudiantes WHERE id = ?', (user_id,)
+        ).fetchone()
+
+        if not estudiante:
+            conn.close()
+            return render_template('calificaciones.html', calificaciones=None)
+
+        semestre_actual = estudiante['semestre']
+
+        # Luego obtenemos solo las calificaciones de ese semestre
         calificaciones = conn.execute('''
-            SELECT c.calificacion, m.nombre AS materia_nombre, e.nombre AS estudiante_nombre, e.semestre AS estudiante_semestre
+            SELECT c.calificacion, m.nombre AS materia_nombre, ? AS estudiante_nombre, ? AS estudiante_semestre
             FROM calificaciones c
             JOIN materias m ON c.materia = m.id
-            JOIN estudiantes e ON c.user_id = e.id
-            WHERE c.user_id = ?
-        ''', (user_id,)).fetchall()
+            WHERE c.user_id = ? AND m.semestre = ?
+        ''', (estudiante['nombre'], semestre_actual, user_id, semestre_actual)).fetchall()
+
         conn.close()
 
         if not calificaciones:
             return render_template('calificaciones.html', calificaciones=None)
 
         calificaciones_dicts = [dict(row) for row in calificaciones]
-        return render_template('calificaciones.html', calificaciones=calificaciones_dicts)
+        return render_template(
+            'calificaciones.html',
+            calificaciones=calificaciones_dicts,
+            semestre_actual=semestre_actual
+        )
     except Exception as e:
         return f"Ha ocurrido un error: {str(e)}", 500
 

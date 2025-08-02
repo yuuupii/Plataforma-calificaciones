@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Gestión de Materias</title>
+    <title>Gestión de Cursos</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Bootstrap y estilos -->
@@ -16,13 +16,13 @@
 </head>
 <body>
 <div class="container mt-4">
-    <h1 class="text-center">Gestión de Materias</h1>
+    <h1 style="color: rgb(29, 118, 191);" class="text-center mb-4 mt-3">Gestión de cursos</h1>
 
     <!-- Formulario para añadir materias -->
-    <h2>Añadir Materia</h2>
+    <h2>Añadir curso</h2>
     <form action="{{ url_for('add_materia') }}" method="post" class="mb-4">
         <div class="form-group">
-            <label for="nombre">Nombre de la Materia:</label>
+            <label for="nombre">Nombre del curso:</label>
             <input type="text" id="nombre" name="nombre" class="form-control" required>
         </div>
         <div class="form-group">
@@ -49,7 +49,7 @@
     </form>
 
     <!-- Lista de materias agrupadas -->
-    <h2 class="mt-4">Lista de Materias</h2>
+    <h2 class="mt-4">Lista de cursos</h2>
     <div id="materias-por-licenciatura" class="lista-materias">
         {% for licenciatura, materias_por_semestre in materias.items() %}
         <div class="card mb-2">

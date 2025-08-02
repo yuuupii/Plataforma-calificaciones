@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Catálogo de Materias</title>
+  <title>Catálogo de cursos</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/parametros.css') }}">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -42,7 +42,7 @@
 </head>
 <body>
   <div class="container-fluid min-vh-100 d-flex flex-column justify-content-start px-2 bg-light">
-    <h2 style="color: #28a;" class="text-center mb-4 mt-3">Catálogo de Materias Registradas</h2>
+    <h2 style="color: #28a;" class="text-center mb-4 mt-3">Catálogo de Cursos Registrados</h2>
 
     {% for licenciatura, semestres in materias.items() %}
     <div class="card mb-3 w-100">

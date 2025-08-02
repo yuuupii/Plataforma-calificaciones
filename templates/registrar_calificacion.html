@@ -132,12 +132,12 @@
 
 <!-- Paso 3: Materia -->
 <div id="paso3" class="paso">
-  <label for="materia">📚 Elige una materia</label>
+  <label for="materia">📚 Selecciona un curso</label>
   <select id="materia" class="form-control" required disabled>
-    <option value="" disabled selected>Seleccione una materia de la lista</option>
+    <option value="" disabled selected>Seleccione un curso de la lista</option>
   </select>
   <div id="error-materia" class="invalid-feedback">
-    ⚠️ Debes seleccionar una materia para continuar.
+    ⚠️ Debes seleccionar un curso para continuar.
   </div>
 </div>
 
@@ -337,7 +337,7 @@ $(function () {
       m.licenciatura === lic && parseInt(m.semestre) === parseInt(semestre)
     );
 
-    let opciones = '<option value="">Seleccione una materia</option>';
+    let opciones = '<option value="">Seleccione un curso</option>';
     materiasFiltradas.forEach(m => {
       opciones += `<option value="${m.id}">${m.nombre}</option>`;
     });

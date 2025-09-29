@@ -11,15 +11,14 @@ from flask_wtf import FlaskForm
 from markupsafe import Markup
 from models import Estudiante
 from flask import request, jsonify
+import psycopg2
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 
 def get_db_connection():
     if 'db' not in g:
-        g.db = sqlite3.connect('database.db')
-        g.db.row_factory = sqlite3.Row
-        g.db.execute('PRAGMA journal_mode = WAL')
+        g.db = psycopg2.connect(os.getenv("SUPABASE_DB_URL"))
     return g.db
 
 @app.teardown_appcontext
@@ -1227,3 +1226,4 @@ def eliminar_duplicados():
 if __name__ == '__main__':
     verificar_datos_materias()
     app.run(debug=True)
+

@@ -2,26 +2,22 @@
 Flask==2.3.3
 
 # Servidor de producción para Render
-gunicorn
+gunicorn==23.0.0
 
 # Conexión a PostgreSQL (Railway)
-psycopg2-binary
+psycopg2-binary==2.9.9
 
 # Seguridad y formularios
 flask-wtf==1.1.1
 Werkzeug==2.3.7
 
 # ORM y migraciones
-SQLAlchemy
-alembic
+SQLAlchemy==2.0.23
+alembic==1.13.1
 
 # Visualización de datos
-plotly[express]
-pandas
+plotly==5.24.1
+pandas==2.2.3
 
 # Manejo de variables de entorno
-<<<<<<< HEAD
-python-dotenv
-=======
-python-dotenv
->>>>>>> bc446f0 (Actualizo inicio_sesion.html con mejora en logos responsivos)
+python-dotenv==1.0.1

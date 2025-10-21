@@ -16,7 +16,7 @@ from models import Estudiante
 load_dotenv()
 
 # Verificación temporal (puedes quitarlo después de confirmar que funciona)
-print("SUPABASE_DB_URL:", os.getenv("SUPABASE_DB_URL"))
+print("DATABASE_URL:", os.getenv("DATABASE_URL"))
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -25,7 +25,7 @@ app.secret_key = 'supersecretkey'
 def get_db_connection():
     dsn = os.getenv("DATABASE_URL")
     if not dsn:
-        raise RuntimeError("SUPABASE_DB_URL no está definida en las variables de entorno")
+        raise RuntimeError("DATABASE_URL no está definida en las variables de entorno")
     return psycopg2.connect(dsn)
 
 #Opción de SQLite como respaldo

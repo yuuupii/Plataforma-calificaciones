@@ -20,4 +20,8 @@ plotly[express]
 pandas
 
 # Manejo de variables de entorno
+<<<<<<< HEAD
 python-dotenv
+=======
+python-dotenv
+>>>>>>> bc446f0 (Actualizo inicio_sesion.html con mejora en logos responsivos)

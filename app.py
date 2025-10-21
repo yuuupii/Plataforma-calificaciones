@@ -1,25 +1,42 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash, g
-import sqlite3
-import os
-import json
-import plotly.express as px
-import pandas as pd
-from materias_util import verificar_materia_duplicada, eliminar_materias_duplicadas
-from flask import g
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf import FlaskForm
 from markupsafe import Markup
-from models import Estudiante
-from flask import request, jsonify
+import os
+import sqlite3
 import psycopg2
+import json
+import plotly.express as px
+import pandas as pd
+from dotenv import load_dotenv
+from materias_util import verificar_materia_duplicada, eliminar_materias_duplicadas
+from models import Estudiante
+
+# Cargar variables de entorno desde .env
+load_dotenv()
+
+# Verificación temporal (puedes quitarlo después de confirmar que funciona)
+print("SUPABASE_DB_URL:", os.getenv("SUPABASE_DB_URL"))
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 
+# Conexión a la base de datos Supabase/Postgres
 def get_db_connection():
+    dsn = os.getenv("DATABASE_URL")
+    if not dsn:
+        raise RuntimeError("SUPABASE_DB_URL no está definida en las variables de entorno")
+    return psycopg2.connect(dsn)
+
+#Opción de SQLite como respaldo
+"""
+def get_db_connection_sqlite():
     if 'db' not in g:
-        g.db = psycopg2.connect(os.getenv("SUPABASE_DB_URL"))
+        g.db = sqlite3.connect('database.db')
+        g.db.row_factory = sqlite3.Row
+        g.db.execute('PRAGMA journal_mode = WAL')
     return g.db
+"""
 
 @app.teardown_appcontext
 def close_db_connection(exception):
@@ -83,6 +100,19 @@ def index():
     
     # Si no hay sesión, mostrar selección de rol
     return render_template('seleccionar_rol.html')
+
+@app.route("/test_db")
+def test_db():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT current_database(), current_user;")
+        result = cur.fetchall()
+        cur.close()
+        conn.close()
+        return {"conexion": result}
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.route('/menu/docente')
 def menu_docente():
@@ -1226,4 +1256,3 @@ def eliminar_duplicados():
 if __name__ == '__main__':
     verificar_datos_materias()
     app.run(debug=True)
-

@@ -1,9 +1,23 @@
+# Framework principal
 Flask==2.3.3
+
+# Servidor de producción para Render
 gunicorn
+
+# Conexión a PostgreSQL (Railway)
+psycopg2-binary
+
+# Seguridad y formularios
+flask-wtf==1.1.1
 Werkzeug==2.3.7
+
+# ORM y migraciones
 SQLAlchemy
 alembic
+
+# Visualización de datos
 plotly[express]
 pandas
-flask-wtf==1.1.1
-psycopg2-binary
+
+# Manejo de variables de entorno
+python-dotenv

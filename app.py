@@ -26,6 +26,11 @@ def get_db_connection():
     dsn = os.getenv("DATABASE_URL")
     if not dsn:
         raise RuntimeError("DATABASE_URL no está definida en las variables de entorno")
+    
+    # Render a veces usa el formato viejo postgres://, lo convertimos al nuevo:
+    if dsn.startswith("postgres://"):
+        dsn = dsn.replace("postgres://", "postgresql://", 1)
+    
     return psycopg2.connect(dsn)
 
 #Opción de SQLite como respaldo
@@ -37,12 +42,19 @@ def get_db_connection_sqlite():
         g.db.execute('PRAGMA journal_mode = WAL')
     return g.db
 """
+@app.before_request
+def before_request():
+    try:
+        g.db_conn = get_db_connection()
+    except Exception as e:
+        print("❌ Error conectando a la base de datos:", e)
+        return "Error conectando a la base de datos", 500
 
-@app.teardown_appcontext
-def close_db_connection(exception):
-    db = g.pop('db', None)
-    if db is not None:
-        db.close()
+@app.teardown_request
+def teardown_request(exception):
+    db_conn = getattr(g, 'db_conn', None)
+    if db_conn is not None:
+        db_conn.close()
 
 def verificar_datos_materias():
     with app.app_context():

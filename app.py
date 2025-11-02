@@ -26,12 +26,18 @@ def get_db_connection():
     dsn = os.getenv("DATABASE_URL")
     if not dsn:
         raise RuntimeError("DATABASE_URL no está definida en las variables de entorno")
-    
-    # Render a veces usa el formato viejo postgres://, lo convertimos al nuevo:
+
+    # Render a veces usa formato postgres:// viejo
     if dsn.startswith("postgres://"):
         dsn = dsn.replace("postgres://", "postgresql://", 1)
-    
-    return psycopg2.connect(dsn)
+
+    try:
+        conn = psycopg2.connect(dsn)
+        print("✅ Conexión exitosa a PostgreSQL")
+        return conn
+    except Exception as e:
+        print("❌ Error conectando a la base de datos:", e)
+        return None
 
 #Opción de SQLite como respaldo
 """

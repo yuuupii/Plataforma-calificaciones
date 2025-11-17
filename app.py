@@ -20,6 +20,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # carga .env
 load_dotenv()
 
+DATABASE_URL = os.getenv("DATABASE_URL")
+
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
 
@@ -56,51 +58,27 @@ def get_db_connection():
 def _is_sqlite_conn(conn):
     return isinstance(conn, sqlite3.Connection)
 
-def db_query(sql, params=None, one=False, many=False, commit=False):
-    """
-    Ejecuta una consulta en la conexión actual almacenada en g.db_conn.
-    - Reemplaza %s por ? si la conexión es sqlite.
-    - Devuelve dict (fetchone) o list[dict] (fetchall).
-    - Si commit=True hace commit.
-    """
-    conn = getattr(g, "db_conn", None)
-    if conn is None:
-        raise RuntimeError("No hay conexión a la base de datos en g.db_conn")
+def db_query(query, params=(), one=False):
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
 
-    params = params or ()
-    cur = None
-    try:
-        if _is_sqlite_conn(conn):
-            # sqlite: reemplaza placeholders %s -> ?
-            sql_exec = sql.replace("%s", "?")
-            cur = conn.cursor()
-            cur.execute(sql_exec, params)
-            if commit:
-                conn.commit()
-            if one:
-                row = cur.fetchone()
-                return dict(row) if row is not None else None
-            if many:
-                rows = cur.fetchall()
-                return [dict(r) for r in rows]
-            return None
-        else:
-            # psycopg2 with RealDictCursor
-            cur = conn.cursor()
-            cur.execute(sql, params)
-            if commit:
-                conn.commit()
-            if one:
-                row = cur.fetchone()
-                return dict(row) if row is not None else None
-            if many:
-                rows = cur.fetchall()
-                # rows are RealDictRow, already dict-like
-                return [dict(r) for r in rows]
-            return None
-    finally:
-        if cur:
-            cur.close()
+    cur.execute(query, params)
+
+    if one:
+        row = cur.fetchone()
+        if row:
+            # convertir a dict con nombres de columnas
+            colnames = [desc[0] for desc in cur.description]
+            row = dict(zip(colnames, row))
+        result = row
+    else:
+        rows = cur.fetchall()
+        colnames = [desc[0] for desc in cur.description]
+        result = [dict(zip(colnames, r)) for r in rows]
+
+    cur.close()
+    conn.close()
+    return result
 
 # ---------------------------
 # BEFORE / TEARDOWN
@@ -518,20 +496,12 @@ def login_admin():
         )
 
         if admin:
-            # Compatibilidad: si viene como dict o como tupla
-            if isinstance(admin, dict):
-                admin_id = admin['id']
-                admin_usuario = admin['usuario']
-                hashed = admin['contrasena']
-            else:  # Es tupla
-                admin_id, admin_usuario, hashed = admin
-
-            # Comparar correctamente usando scrypt
-            if hashed and check_password_hash(hashed, contrasena):
-                session['user_id'] = admin_id
+            hashed = admin['contrasena']
+            if check_password_hash(hashed, contrasena):
+                session['user_id'] = admin['id']
                 session['usuario_tipo'] = 'admin'
-                session['usuario'] = admin_usuario
-                flash(f'Bienvenido, administrador {admin_usuario} 🧑‍💼')
+                session['usuario'] = admin['usuario']
+                flash(f'Bienvenido, administrador {admin['usuario']} 🧑‍💼')
                 return redirect(url_for('menu_admin'))
 
         flash('Credenciales incorrectas ❌')

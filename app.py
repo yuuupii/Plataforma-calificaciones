@@ -251,12 +251,9 @@ def menu_docente():
         return redirect(url_for('index'))
     return render_template('menu_docente.html')
 
-@app.route('/menu/admin')
+@app.route('/menu_admin')
 def menu_admin():
-    if session.get('usuario_tipo') != 'admin':
-        flash('Acceso restringido. Solo administradores.')
-        return redirect(url_for('login_admin'))
-    return render_template('menu_admin.html')
+    return render_template('menu_admin.html')   # 🔓 ACCESO LIBRE TEMPORAL
 
 # --------------------------------------------------
 # Registro y gestión de usuarios (admin crea usuarios)

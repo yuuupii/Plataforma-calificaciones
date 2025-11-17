@@ -233,16 +233,8 @@ if __name__ == '__main__':
 
 @app.route('/')
 def index():
-    # Si ya hay sesión activa, redirige al panel correcto (compatibilidad con sesiones previas)
-    if 'user_id' in session:
-        rol = session.get('usuario_tipo') or session.get('rol')
-        if rol == 'estudiante' or rol == 'alumno':
-            return redirect(url_for('ver_calificaciones'))
-        elif rol == 'docente':
-            return redirect(url_for('menu_docente'))
-        elif rol == 'admin':
-            return redirect(url_for('menu_admin'))
-    return render_template('seleccionar_rol.html')
+    # 🔥 Redirección directa y temporal al menú de administradores
+    return redirect(url_for('menu_admin'))
 
 # Mantener endpoint solicitado por plantillas
 @app.route('/seleccionar-rol')

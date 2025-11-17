@@ -60,19 +60,36 @@ def _is_sqlite_conn(conn):
 
 def db_query(query, params=None, one=False, commit=False):
     conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    cur.execute(query, params)
+    # Detectar si la conexión es SQLite
+    is_sqlite = isinstance(conn, sqlite3.Connection)
 
+    # Adaptar placeholders: %s (Postgres) → ? (SQLite)
+    if is_sqlite:
+        query_sqlite = query.replace("%s", "?")
+        cur = conn.cursor()
+        cur.execute(query_sqlite, params or [])
+    else:
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(query, params)
+
+    # ¿Commit?
     if commit:
         conn.commit()
         cur.close()
         conn.close()
         return True
 
+    # Obtener resultados
     rows = cur.fetchall()
     cur.close()
     conn.close()
+
+    # Postgres devuelve dict; SQLite devuelve sqlite3.Row
+    # Convertimos sqlite3.Row a dict para mantener consistencia
+    if is_sqlite:
+        rows = [dict(row) for row in rows]
+
     return rows[0] if one and rows else rows
 
 # ---------------------------
@@ -228,8 +245,18 @@ if __name__ == '__main__':
 
 @app.route('/')
 def index():
-    # 🔥 Redirección directa y temporal al menú de administradores
-    return redirect(url_for('menu_admin'))
+    # Si ya hay sesión activa, redirige al panel correcto
+    if 'user_id' in session:
+        rol = session.get('usuario_tipo')
+        if rol == 'estudiante':
+            return redirect(url_for('ver_calificaciones'))
+        elif rol == 'docente':
+            return redirect(url_for('menu_docente'))
+        elif rol == 'admin':
+            return redirect(url_for('menu_admin'))
+
+    # Si no está logueado, mostrar pantalla de selección de rol
+    return render_template('seleccionar_rol.html')
 
 # Mantener endpoint solicitado por plantillas
 @app.route('/seleccionar-rol')
@@ -246,9 +273,12 @@ def menu_docente():
         return redirect(url_for('index'))
     return render_template('menu_docente.html')
 
-@app.route('/menu_admin')
+@app.route('/menu/admin')
 def menu_admin():
-    return render_template('menu_admin.html')   # 🔓 ACCESO LIBRE TEMPORAL
+    if session.get('usuario_tipo') != 'admin':
+        flash('Acceso restringido. Solo administradores.')
+        return redirect(url_for('login_admin'))
+    return render_template('menu_admin.html')
 
 # --------------------------------------------------
 # Registro y gestión de usuarios (admin crea usuarios)
@@ -284,8 +314,8 @@ def registrar_usuario():
         flash(f'Usuario "{usuario}" registrado exitosamente como {tipo}')
         return redirect(url_for('registrar_usuario'))
 
-    docentes = db_query("SELECT id, usuario, contrasena FROM maestros ORDER BY id", many=True) or []
-    administrativos = db_query("SELECT id, usuario, contrasena FROM administrativos ORDER BY id", many=True) or []
+    docentes = db_query("SELECT id, usuario, contrasena FROM maestros ORDER BY id", one=False) or []
+    administrativos = db_query("SELECT id, usuario, contrasena FROM administrativos ORDER BY id", one=False) or []
     return render_template('registrar_usuario.html', docentes=docentes, administrativos=administrativos)
 
 @app.route('/registro_usuario_publico', methods=['GET', 'POST'])
@@ -322,8 +352,8 @@ def ver_usuarios():
         flash('Acceso restringido')
         return redirect(url_for('login_admin'))
 
-    docentes = db_query("SELECT id, usuario FROM maestros ORDER BY usuario", many=True) or []
-    admins = db_query("SELECT id, usuario FROM administrativos ORDER BY usuario", many=True) or []
+    docentes = db_query("SELECT id, usuario FROM maestros ORDER BY usuario",one=False) or []
+    admins = db_query("SELECT id, usuario FROM administrativos ORDER BY usuario", one=False) or []
 
     tipo = request.args.get('tipo')
     user_id = request.args.get('user_id')
@@ -523,7 +553,7 @@ def mostrar_login_estudiante():
 # --------------------------------------------------
 @app.route('/dashboard')
 def dashboard():
-    calificaciones = db_query("SELECT * FROM calificaciones", many=True) or []
+    calificaciones = db_query("SELECT * FROM calificaciones", one=False) or []
     if not calificaciones:
         return render_template('dashboard.html', graph_html=None)
     # construimos DataFrame cuidando las keys
@@ -556,7 +586,7 @@ def ver_calificaciones():
             FROM calificaciones c
             JOIN materias m ON c.materia = m.id
             WHERE c.user_id = %s AND m.semestre = %s
-        ''', (nombre_estudiante, semestre_actual, user_id, semestre_actual), many=True)
+        ''', (nombre_estudiante, semestre_actual, user_id, semestre_actual), one=False)
 
         return render_template('calificaciones.html', calificaciones=calificaciones, semestre_actual=semestre_actual)
     except Exception as e:
@@ -636,7 +666,7 @@ def mostrar_calificaciones():
         JOIN materias m ON c.materia = m.id
         JOIN estudiantes e ON c.user_id = e.id
         WHERE c.user_id = %s
-    ''', (user_id,), many=True) or []
+    ''', (user_id,), one=False) or []
     # semestre_actual: tomar máximo de columna semestre (índice 'semestre')
     semestre_actual = max([row.get('semestre') if isinstance(row, dict) else row[3] for row in calificaciones]) if calificaciones else None
     return render_template('calificaciones.html', calificaciones=calificaciones, semestre_actual=semestre_actual)
@@ -667,8 +697,8 @@ def registrar_calificacion():
         return redirect(url_for('registrar_calificacion', mensaje=mensaje))
 
     mensaje = request.args.get('mensaje')
-    alumnos_sql = db_query("SELECT * FROM estudiantes", many=True) or []
-    materias_sql = db_query("SELECT * FROM materias", many=True) or []
+    alumnos_sql = db_query("SELECT * FROM estudiantes", one=False) or []
+    materias_sql = db_query("SELECT * FROM materias", one=False) or []
 
     # convertir (ya devuelto como dicts por db_query)
     alumnos = alumnos_sql
@@ -730,7 +760,7 @@ def historial_academico():
         JOIN materias m ON c.materia = m.id
         WHERE c.user_id = %s
         ORDER BY m.licenciatura, m.semestre, m.nombre
-    ''', (user_id,), many=True) or []
+    ''', (user_id,), one=False) or []
 
     historial = {}
     promedios_por_semestre = {}
@@ -759,7 +789,7 @@ def ver_historial_estudiante(estudiante_id):
         JOIN estudiantes e ON c.user_id = e.id
         WHERE c.user_id = %s
         ORDER BY m.licenciatura, m.semestre, m.nombre
-    ''', (estudiante_id,), many=True) or []
+    ''', (estudiante_id,), one=False) or []
 
     if not resultado:
         flash('Este estudiante aún no tiene calificaciones registradas.', 'warning')
@@ -817,7 +847,7 @@ def update_calificacion():
 # --------------------------------------------------
 @app.route('/alumnos')
 def alumnos():
-    alumnos = db_query("SELECT * FROM estudiantes", many=True) or []
+    alumnos = db_query("SELECT * FROM estudiantes", one=False) or []
     alumnos_por_licenciatura = {}
     for alumno in alumnos:
         lic = alumno.get('licenciatura')
@@ -902,12 +932,12 @@ def gestion_materias():
         WHERE id NOT IN (
             SELECT MIN(id) FROM materias GROUP BY nombre, licenciatura, semestre
         )
-    ''', many=True) or []
+    ''', one=False) or []
     return render_template('gestionar_materias.html', materias_duplicadas=materias_duplicadas)
 
 @app.route('/ver_materias')
 def ver_materias():
-    materias = db_query("SELECT * FROM materias ORDER BY licenciatura, semestre, nombre", many=True) or []
+    materias = db_query("SELECT * FROM materias ORDER BY licenciatura, semestre, nombre", one=False) or []
     estructura = {}
     for m in materias:
         lic = m.get('licenciatura')
@@ -932,7 +962,7 @@ def obtener_materias():
         SELECT m.id, m.nombre FROM materias m
         JOIN licenciaturas_materias lm ON m.id = lm.materia_id
         WHERE lm.licenciatura = %s AND lm.semestre = %s
-    ''', (licenciatura, semestre), many=True) or []
+    ''', (licenciatura, semestre), one=False) or []
     materias_list = [{'id': m.get('id'), 'nombre': m.get('nombre')} for m in materias]
     return jsonify({'materias': materias_list})
 
@@ -951,7 +981,7 @@ def materias_calificadas():
         JOIN estudiantes e ON c.user_id = e.id
         WHERE e.id = %s AND e.licenciatura = %s AND m.semestre = %s
         ORDER BY m.semestre
-    ''', (user_id, licenciatura, semestre), many=True) or []
+    ''', (user_id, licenciatura, semestre), one=False) or []
     return render_template('materias_calificadas.html', materias=materias, user_id=user_id)
 
 # --------------------------------------------------
@@ -980,7 +1010,7 @@ def eliminar_duplicados():
                 FROM calificaciones
             )
             SELECT id FROM cte WHERE rn > 1;
-        ''', many=True) or []
+        ''', one=False) or []
         duplicados_ids = [r.get('id') for r in ids_duplicados]
         calificaciones_duplicadas = []
         if duplicados_ids:
@@ -992,7 +1022,7 @@ def eliminar_duplicados():
                 JOIN materias m ON c.materia = m.id
                 JOIN estudiantes e ON c.user_id = e.id
                 WHERE c.id IN ({placeholders})
-            ''', tuple(duplicados_ids), many=True) or []
+            ''', tuple(duplicados_ids), one=False) or []
         return render_template('eliminar_duplicados.html', calificaciones=calificaciones_duplicadas)
 
     # POST: eliminar seleccionados
@@ -1010,7 +1040,7 @@ def eliminar_duplicados():
 # --------------------------------------------------
 def inicializar_materias_para_alumno(alumno_id, licenciatura, semestre):
     materias = db_query("SELECT id FROM materias WHERE licenciatura = %s AND semestre = %s",
-                       (licenciatura, semestre), many=True) or []
+                       (licenciatura, semestre), one=False) or []
     for materia in materias:
         mid = materia.get('id')
         db_query("INSERT INTO calificaciones (user_id, materia, calificacion) VALUES (%s, %s, %s)",
@@ -1033,7 +1063,7 @@ def gestionar_materias_view():
         WHERE id NOT IN (
             SELECT MIN(id) FROM materias GROUP BY nombre, licenciatura, semestre
         )
-    ''', many=True) or []
+    ''', one=False) or []
     return render_template('gestionar_materias.html', materias_duplicadas=materias_duplicadas)
 
 # --------------------------------------------------

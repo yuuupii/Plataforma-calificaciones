@@ -511,19 +511,32 @@ def login_admin():
         usuario = request.form.get('usuario', '').strip()
         contrasena = request.form.get('contrasena', '').strip()
 
-        admin = db_query("SELECT * FROM administrativos WHERE usuario = %s", (usuario,), one=True)
+        admin = db_query(
+            "SELECT id, usuario, contrasena FROM administrativos WHERE usuario = %s",
+            (usuario,),
+            one=True
+        )
+
         if admin:
-            hashed = admin.get('contrasena') if isinstance(admin, dict) else admin[2]
-            admin_id = admin.get('id') if isinstance(admin, dict) else admin[0]
-            admin_usuario = admin.get('usuario') if isinstance(admin, dict) else admin[1]
+            # Compatibilidad: si viene como dict o como tupla
+            if isinstance(admin, dict):
+                admin_id = admin['id']
+                admin_usuario = admin['usuario']
+                hashed = admin['contrasena']
+            else:  # Es tupla
+                admin_id, admin_usuario, hashed = admin
+
+            # Comparar correctamente usando scrypt
             if hashed and check_password_hash(hashed, contrasena):
                 session['user_id'] = admin_id
                 session['usuario_tipo'] = 'admin'
                 session['usuario'] = admin_usuario
                 flash(f'Bienvenido, administrador {admin_usuario} 🧑‍💼')
                 return redirect(url_for('menu_admin'))
+
         flash('Credenciales incorrectas ❌')
         return redirect(url_for('login_admin'))
+
     return render_template('login_admin.html')
 
 # Student login: endpoint name used in templates puede variar.

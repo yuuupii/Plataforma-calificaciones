@@ -58,27 +58,22 @@ def get_db_connection():
 def _is_sqlite_conn(conn):
     return isinstance(conn, sqlite3.Connection)
 
-def db_query(query, params=(), one=False):
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
+def db_query(query, params=None, one=False, commit=False):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute(query, params)
 
-    if one:
-        row = cur.fetchone()
-        if row:
-            # convertir a dict con nombres de columnas
-            colnames = [desc[0] for desc in cur.description]
-            row = dict(zip(colnames, row))
-        result = row
-    else:
-        rows = cur.fetchall()
-        colnames = [desc[0] for desc in cur.description]
-        result = [dict(zip(colnames, r)) for r in rows]
+    if commit:
+        conn.commit()
+        cur.close()
+        conn.close()
+        return True
 
+    rows = cur.fetchall()
     cur.close()
     conn.close()
-    return result
+    return rows[0] if one and rows else rows
 
 # ---------------------------
 # BEFORE / TEARDOWN

@@ -501,7 +501,7 @@ def login_admin():
                 session['user_id'] = admin['id']
                 session['usuario_tipo'] = 'admin'
                 session['usuario'] = admin['usuario']
-                flash(f'Bienvenido, administrador {admin['usuario']} 🧑‍💼')
+                flash(f"Bienvenido, administrador {admin['usuario']} 🧑‍💼")
                 return redirect(url_for('menu_admin'))
 
         flash('Credenciales incorrectas ❌')

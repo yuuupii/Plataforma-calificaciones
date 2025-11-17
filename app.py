@@ -21,11 +21,14 @@ print("DATABASE_URL:", os.getenv("DATABASE_URL"))
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 
-# Conexión a la base de datos Supabase/Postgres
+# Conexión a la base de datos (PostgreSQL en Railway o SQLite local)
 def get_db_connection():
     dsn = os.getenv("DATABASE_URL")
     if not dsn:
-        raise RuntimeError("DATABASE_URL no está definida en las variables de entorno")
+        # Si no hay DATABASE_URL, usar SQLite como respaldo
+        conn = sqlite3.connect("database.db")
+        conn.row_factory = sqlite3.Row
+        return conn
 
     # Render a veces usa formato postgres:// viejo
     if dsn.startswith("postgres://"):
@@ -36,18 +39,33 @@ def get_db_connection():
         print("✅ Conexión exitosa a PostgreSQL")
         return conn
     except Exception as e:
-        print("❌ Error conectando a la base de datos:", e)
-        return None
+        print("❌ Error conectando a PostgreSQL, usando SQLite:", e)
+        conn = sqlite3.connect("database.db")
+        conn.row_factory = sqlite3.Row
+        return conn
 
-#Opción de SQLite como respaldo
-"""
-def get_db_connection_sqlite():
-    if 'db' not in g:
-        g.db = sqlite3.connect('database.db')
-        g.db.row_factory = sqlite3.Row
-        g.db.execute('PRAGMA journal_mode = WAL')
-    return g.db
-"""
+# Función auxiliar para ejecutar consultas
+def query(sql, params=None, fetchone=False, fetchall=False, commit=False):
+    cur = g.db_conn.cursor()
+
+    # Ajustar placeholder si es SQLite
+    if isinstance(g.db_conn, sqlite3.Connection):
+        sql = sql.replace("%s", "?")
+
+    cur.execute(sql, params or ())
+
+    result = None
+    if fetchone:
+        result = cur.fetchone()
+    elif fetchall:
+        result = cur.fetchall()
+
+    if commit:
+        g.db_conn.commit()
+
+    cur.close()
+    return result
+
 @app.before_request
 def before_request():
     try:
@@ -65,43 +83,72 @@ def teardown_request(exception):
 def verificar_datos_materias():
     with app.app_context():
         conn = get_db_connection()
-        
-        # ✅ Crear la tabla si no existe
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS materias (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT NOT NULL,
-                licenciatura TEXT NOT NULL,
-                semestre INTEGER NOT NULL
-            );
-        ''')
-        conn.commit()
+        cur = conn.cursor()
 
-        # ✅ Consultar datos después de asegurar existencia
-        materias = conn.execute('SELECT * FROM materias').fetchall()
+        # ✅ Crear la tabla si no existe
+        if isinstance(conn, sqlite3.Connection):
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS materias (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    nombre TEXT NOT NULL,
+                    licenciatura TEXT NOT NULL,
+                    semestre INTEGER NOT NULL
+                );
+            ''')
+        else:
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS materias (
+                    id SERIAL PRIMARY KEY,
+                    nombre TEXT NOT NULL,
+                    licenciatura TEXT NOT NULL,
+                    semestre INTEGER NOT NULL
+                );
+            ''')
+
+        conn.commit()
+        cur.execute("SELECT * FROM materias;")
+        materias = cur.fetchall()
+        cur.close()
         conn.close()
+        return materias
 
 def inicializar_base_datos():
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cur = conn.cursor()
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS maestros (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario TEXT UNIQUE NOT NULL,
-            contrasena TEXT NOT NULL
-        );
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS administrativos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario TEXT UNIQUE NOT NULL,
-            contrasena TEXT NOT NULL
-        );
-    ''')
+    if isinstance(conn, sqlite3.Connection):
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS maestros (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario TEXT UNIQUE NOT NULL,
+                contrasena TEXT NOT NULL
+            );
+        ''')
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS administrativos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario TEXT UNIQUE NOT NULL,
+                contrasena TEXT NOT NULL
+            );
+        ''')
+    else:
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS maestros (
+                id SERIAL PRIMARY KEY,
+                usuario TEXT UNIQUE NOT NULL,
+                contrasena TEXT NOT NULL
+            );
+        ''')
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS administrativos (
+                id SERIAL PRIMARY KEY,
+                usuario TEXT UNIQUE NOT NULL,
+                contrasena TEXT NOT NULL
+            );
+        ''')
 
     conn.commit()
+    cur.close()
     conn.close()
 
 @app.route('/')
@@ -143,7 +190,7 @@ def registrar_usuario():
         return redirect(url_for('seleccionar_rol'))
 
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cur = conn.cursor()
 
     if request.method == 'POST':
         tipo = request.form['tipo'].strip()
@@ -157,9 +204,9 @@ def registrar_usuario():
 
         # Validación de duplicados
         if tipo == 'docente':
-            existe = cursor.execute('SELECT * FROM maestros WHERE usuario = ?', (usuario,)).fetchone()
+            existe = query("SELECT * FROM maestros WHERE usuario = %s", (usuario,), fetchone=True)
         elif tipo == 'administrativo':
-            existe = cursor.execute('SELECT * FROM administrativos WHERE usuario = ?', (usuario,)).fetchone()
+            existe = query("SELECT * FROM administrativos WHERE usuario = %s", (usuario,), fetchone=True)
         else:
             flash('Tipo de usuario no válido')
             return redirect(url_for('registrar_usuario'))
@@ -168,23 +215,20 @@ def registrar_usuario():
             flash(f'El usuario "{usuario}" ya está registrado como {tipo}')
             return redirect(url_for('registrar_usuario'))
 
-        # Insertar nuevo usuario
         # Encriptar contraseña antes de guardar
         contrasena_hash = generate_password_hash(contrasena)
 
         if tipo == 'docente':
-            cursor.execute('INSERT INTO maestros (usuario, contrasena) VALUES (?, ?)', (usuario, contrasena_hash))
+            query("INSERT INTO maestros (usuario, contrasena) VALUES (%s, %s)", (usuario, contrasena_hash), commit=True)
         elif tipo == 'administrativo':
-            cursor.execute('INSERT INTO administrativos (usuario, contrasena) VALUES (?, ?)', (usuario, contrasena_hash))
+            query("INSERT INTO administrativos (usuario, contrasena) VALUES (%s, %s)", (usuario, contrasena_hash), commit=True)
 
-        conn.commit()
         flash(f'Usuario "{usuario}" registrado exitosamente como {tipo}')
         return redirect(url_for('registrar_usuario'))
 
     # Mostrar tabla de usuarios existentes
-    docentes = conn.execute('SELECT id, usuario, contrasena FROM maestros ORDER BY id').fetchall()
-    administrativos = conn.execute('SELECT id, usuario, contrasena FROM administrativos ORDER BY id').fetchall()
-    conn.close()
+    docentes = query("SELECT id, usuario, contrasena FROM maestros ORDER BY id", fetchall=True)
+    administrativos = query("SELECT id, usuario, contrasena FROM administrativos ORDER BY id", fetchall=True)
 
     return render_template('registrar_usuario.html',
                            docentes=docentes,
@@ -192,9 +236,6 @@ def registrar_usuario():
 
 @app.route('/registro_usuario_publico', methods=['GET', 'POST'])
 def registrar_usuario_publico():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
     if request.method == 'POST':
         tipo = request.form['tipo'].strip()
         usuario = request.form['usuario'].strip()
@@ -215,7 +256,7 @@ def registrar_usuario_publico():
             return redirect(url_for('registrar_usuario_publico'))
 
         # Verificar si el usuario ya existe
-        existe = cursor.execute(f'SELECT * FROM {tabla} WHERE usuario = ?', (usuario,)).fetchone()
+        existe = query(f"SELECT * FROM {tabla} WHERE usuario = %s", (usuario,), fetchone=True)
 
         if existe:
             flash(f'El usuario "{usuario}" ya está registrado como {tipo}')
@@ -223,9 +264,7 @@ def registrar_usuario_publico():
 
         # Insertar nuevo usuario
         contrasena_hash = generate_password_hash(contrasena)
-        cursor.execute(f'INSERT INTO {tabla} (usuario, contrasena) VALUES (?, ?)', (usuario, contrasena_hash))
-        conn.commit()
-        conn.close()
+        query(f"INSERT INTO {tabla} (usuario, contrasena) VALUES (%s, %s)", (usuario, contrasena_hash), commit=True)
 
         flash('¡Registro exitoso! Ahora puedes iniciar sesión.')
 
@@ -243,10 +282,8 @@ def ver_usuarios():
         flash('Acceso restringido')
         return redirect(url_for('login_admin'))
 
-    conn = get_db_connection()
-
-    docentes = conn.execute('SELECT id, usuario FROM maestros ORDER BY usuario').fetchall()
-    admins = conn.execute('SELECT id, usuario FROM administrativos ORDER BY usuario').fetchall()
+    docentes = query("SELECT id, usuario FROM maestros ORDER BY usuario", fetchall=True)
+    admins = query("SELECT id, usuario FROM administrativos ORDER BY usuario", fetchall=True)
 
     # Si viene info para editar
     tipo = request.args.get('tipo')
@@ -255,10 +292,8 @@ def ver_usuarios():
 
     if tipo in ['docente', 'administrativo'] and user_id:
         tabla = 'maestros' if tipo == 'docente' else 'administrativos'
-        usuario_editar = conn.execute(f'SELECT * FROM {tabla} WHERE id = ?', (user_id,)).fetchone()
+        usuario_editar = query(f"SELECT * FROM {tabla} WHERE id = %s", (user_id,), fetchone=True)
         tipo_edicion = tipo
-
-    conn.close()
 
     return render_template('ver_usuarios.html',
                            docentes=docentes,
@@ -282,17 +317,14 @@ def eliminar_usuario():
 
     tabla = 'maestros' if tipo == 'docente' else 'administrativos'
 
-    conn = get_db_connection()
-    resultado = conn.execute(f'SELECT usuario FROM {tabla} WHERE id = ?', (user_id,)).fetchone()
+    resultado = query(f"SELECT usuario FROM {tabla} WHERE id = %s", (user_id,), fetchone=True)
 
     if resultado:
-        conn.execute(f'DELETE FROM {tabla} WHERE id = ?', (user_id,))
-        conn.commit()
-        flash(f'Usuario "{resultado["usuario"]}" eliminado correctamente ✅')
+        query(f"DELETE FROM {tabla} WHERE id = %s", (user_id,), commit=True)
+        flash(f'Usuario "{resultado[0]}" eliminado correctamente ✅')
     else:
         flash('Usuario no encontrado ❌')
 
-    conn.close()
     return redirect(url_for('registrar_usuario'))
 
 @app.route('/actualizar_usuario', methods=['POST'])
@@ -307,22 +339,17 @@ def actualizar_usuario():
         return redirect(url_for('ver_usuarios'))
 
     tabla = 'maestros' if tipo == 'docente' else 'administrativos'
-    conn = get_db_connection()
 
     if nueva_contrasena:
-        conn.execute(f'''
-            UPDATE {tabla} SET usuario = ?, contrasena = ? WHERE id = ?
-        ''', (nuevo_usuario, nueva_contrasena, user_id))
+        query(f"UPDATE {tabla} SET usuario = %s, contrasena = %s WHERE id = %s",
+              (nuevo_usuario, nueva_contrasena, user_id), commit=True)
     else:
-        conn.execute(f'''
-            UPDATE {tabla} SET usuario = ? WHERE id = ?
-        ''', (nuevo_usuario, user_id))
-
-    conn.commit()
-    conn.close()
+        query(f"UPDATE {tabla} SET usuario = %s WHERE id = %s",
+              (nuevo_usuario, user_id), commit=True)
 
     flash('✅ Usuario actualizado correctamente')
     return redirect(url_for('ver_usuarios'))
+
 
 @app.route('/cambiar-contrasena', methods=['GET', 'POST'])
 def cambiar_contrasena():
@@ -330,45 +357,37 @@ def cambiar_contrasena():
         flash('Acceso restringido.')
         return redirect(url_for('login'))
 
-    conn = get_db_connection()
-
     if request.method == 'POST':
         actual = request.form['contrasena_actual'].strip()
         nueva = request.form['nueva_contrasena'].strip()
         confirmar = request.form['confirmar_contrasena'].strip()
 
-        docente = conn.execute(
-            'SELECT contrasena FROM maestros WHERE id = ?',
-            (session['user_id'],)
-        ).fetchone()
+        docente = query("SELECT contrasena FROM maestros WHERE id = %s",
+                        (session['user_id'],), fetchone=True)
 
-        if not docente or actual != docente['contrasena']:
+        if not docente or not check_password_hash(docente[0], actual):
             flash('❌ La contraseña actual no es correcta.')
         elif nueva != confirmar:
             flash('⚠️ Las nuevas contraseñas no coinciden.')
         elif not nueva:
             flash('🚫 La nueva contraseña no puede estar vacía.')
         else:
-            conn.execute(
-                'UPDATE maestros SET contrasena = ? WHERE id = ?',
-                (nueva, session['user_id'])
-            )
-            conn.commit()
+            nueva_hash = generate_password_hash(nueva)
+            query("UPDATE maestros SET contrasena = %s WHERE id = %s",
+                  (nueva_hash, session['user_id']), commit=True)
             flash('✅ Contraseña actualizada con éxito.')
 
-        conn.close()
         return redirect(url_for('cambiar_contrasena'))
 
-    conn.close()
     return render_template('cambiar_contrasena.html', tipo=session.get('usuario_tipo'))
+
 
 @app.route('/logout')
 def logout():
     session.clear()  # Borra toda la sesión
     flash('Sesión cerrada exitosamente')
-    return redirect(url_for('seleccionar_rol'))  # Asegúrate de tener esta ruta definida
+    return redirect(url_for('seleccionar_rol'))
 
-from werkzeug.security import check_password_hash
 
 @app.route('/login/docente', methods=['GET', 'POST'])
 def login_docente():
@@ -376,24 +395,24 @@ def login_docente():
         usuario = request.form['usuario'].strip()
         contrasena = request.form['contrasena'].strip()
 
-        conn = get_db_connection()
-        docente = conn.execute(
-            'SELECT * FROM maestros WHERE usuario = ?',
-            (usuario,)
-        ).fetchone()
-        conn.close()
+        docente = query("SELECT id, usuario, contrasena FROM maestros WHERE usuario = %s",
+                        (usuario,), fetchone=True)
 
-        if docente and check_password_hash(docente['contrasena'], contrasena):
-            session['user_id'] = docente['id']
-            session['usuario_tipo'] = 'docente'
-            session['usuario'] = docente['usuario']
-            flash(f'Bienvenido, docente {docente["usuario"]} 👨‍🏫')
-            return redirect(url_for('menu_docente'))
-        else:
-            flash('Credenciales incorrectas ❌')
-            return redirect(url_for('login_docente'))
+        if docente:
+            docente_id, docente_usuario, docente_pass = docente
+
+            if check_password_hash(docente_pass, contrasena):
+                session['user_id'] = docente_id
+                session['usuario_tipo'] = 'docente'
+                session['usuario'] = docente_usuario
+                flash(f'Bienvenido, docente {docente_usuario} 👨‍🏫')
+                return redirect(url_for('menu_docente'))
+
+        flash('Credenciales incorrectas ❌')
+        return redirect(url_for('login_docente'))
 
     return render_template('login_docente.html')
+
 
 @app.route('/login/admin', methods=['GET', 'POST'])
 def login_admin():
@@ -401,21 +420,24 @@ def login_admin():
         usuario = request.form['usuario'].strip()
         contrasena = request.form['contrasena'].strip()
 
-        conn = get_db_connection()
-        admin = conn.execute('SELECT * FROM administrativos WHERE usuario = ?', (usuario,)).fetchone()
-        conn.close()
+        admin = query("SELECT id, usuario, contrasena FROM administrativos WHERE usuario = %s",
+                      (usuario,), fetchone=True)
 
-        if admin and check_password_hash(admin['contrasena'], contrasena):
-            session['user_id'] = admin['id']
-            session['usuario_tipo'] = 'admin'
-            session['usuario'] = admin['usuario']
-            flash(f'Bienvenido, administrador {admin["usuario"]} 🧑‍💼')
-            return redirect(url_for('menu_admin'))
-        else:
-            flash('Credenciales incorrectas ❌')
-            return redirect(url_for('login_admin'))
+        if admin:
+            admin_id, admin_usuario, admin_pass = admin
+
+            if check_password_hash(admin_pass, contrasena):
+                session['user_id'] = admin_id
+                session['usuario_tipo'] = 'admin'
+                session['usuario'] = admin_usuario
+                flash(f'Bienvenido, administrador {admin_usuario} 🧑‍💼')
+                return redirect(url_for('menu_admin'))
+
+        flash('Credenciales incorrectas ❌')
+        return redirect(url_for('login_admin'))
 
     return render_template('login_admin.html')
+
 
 @app.route('/menu/admin')
 def menu_admin():
@@ -423,6 +445,7 @@ def menu_admin():
         flash('Acceso restringido. Solo administradores.')
         return redirect(url_for('login_admin'))
     return render_template('menu_admin.html')
+
 
 @app.route('/seleccionar-rol')
 def seleccionar_rol():
@@ -433,19 +456,15 @@ def actualizar_contrasena(tipo, user_id):
     if session.get('usuario_tipo') != 'admin':
         return redirect(url_for('seleccionar_rol'))
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
     if tipo not in ['docente', 'administrativo']:
         flash('Tipo de usuario inválido ❌')
         return redirect(url_for('registrar_usuario'))
 
     tabla = 'maestros' if tipo == 'docente' else 'administrativos'
-    usuario = cursor.execute(f'SELECT * FROM {tabla} WHERE id = ?', (user_id,)).fetchone()
+    usuario = query(f"SELECT id, usuario FROM {tabla} WHERE id = %s", (user_id,), fetchone=True)
 
     if not usuario:
         flash('Usuario no encontrado ❌')
-        conn.close()
         return redirect(url_for('registrar_usuario'))
 
     if request.method == 'POST':
@@ -454,49 +473,45 @@ def actualizar_contrasena(tipo, user_id):
             flash('La nueva contraseña no puede estar vacía ❗')
         else:
             nueva_hash = generate_password_hash(nueva)
-            cursor.execute(f'UPDATE {tabla} SET contrasena = ? WHERE id = ?', (nueva_hash, user_id))
-            conn.commit()
-            flash(f'Contraseña actualizada correctamente para "{usuario["usuario"]}" ✅')
+            query(f"UPDATE {tabla} SET contrasena = %s WHERE id = %s",
+                  (nueva_hash, user_id), commit=True)
+            flash(f'Contraseña actualizada correctamente para "{usuario[1]}" ✅')
 
-        conn.close()
         return redirect(url_for('registrar_usuario'))
 
-    conn.close()
     return render_template('actualizar_contrasena.html', usuario=usuario, tipo=tipo)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        nombre = request.form['nombre']
-        matricula = request.form['matricula']
+        nombre = request.form['nombre'].strip()
+        matricula = request.form['matricula'].strip()
 
-        conn = get_db_connection()
-        user = conn.execute('SELECT * FROM estudiantes WHERE nombre = ? AND matricula = ?', (nombre, matricula)).fetchone()
-        conn.close()
+        user = query("SELECT id, nombre, matricula FROM estudiantes WHERE nombre = %s AND matricula = %s",
+                     (nombre, matricula), fetchone=True)
 
         if user:
-            session['user_id'] = user['id']
+            session['user_id'] = user[0]
             session['usuario_tipo'] = 'estudiante'
             return redirect(url_for('ver_calificaciones'))
         else:
-            flash('Nombre o matrícula incorrectos')
-            return redirect(url_for('login'))  # Regresa al mismo formulario
+            flash('Nombre o matrícula incorrectos ❌')
+            return redirect(url_for('login'))
 
-    # Mostrar tu página visual personalizada
     return render_template('inicio_sesion.html')
 
-@app.route('/login', methods=['GET'])
-def mostrar_login_estudiante():
-    return render_template('inicio_sesion.html')
 
 @app.route('/dashboard')
 def dashboard():
-    conn = get_db_connection()
-    calificaciones = conn.execute('SELECT * FROM calificaciones').fetchall()
-    conn.close()
+    calificaciones = query("SELECT * FROM calificaciones", fetchall=True)
+
+    if not calificaciones:
+        return render_template('dashboard.html', graph_html=None)
 
     # Convertir los datos a un DataFrame
-    df = pd.DataFrame([dict(row) for row in calificaciones])
+    df = pd.DataFrame([dict(zip([desc[0] for desc in g.db_conn.cursor().description], row))
+                       for row in calificaciones])
 
     # Crear una gráfica de ejemplo
     fig = px.histogram(df, x='calificacion', nbins=10, title='Distribución de Calificaciones')
@@ -504,47 +519,39 @@ def dashboard():
 
     return render_template('dashboard.html', graph_html=graph_html)
 
+
 @app.route('/ver_calificaciones', methods=['GET'])
 def ver_calificaciones():
     try:
         user_id = session.get('user_id')
         if not user_id:
-            return redirect(url_for('index'))  # Redirigir si el usuario no está autenticado
+            return redirect(url_for('index'))
 
-        conn = get_db_connection()
-
-        # Primero obtenemos el semestre actual del estudiante
-        estudiante = conn.execute(
-            'SELECT nombre, semestre FROM estudiantes WHERE id = ?', (user_id,)
-        ).fetchone()
+        estudiante = query("SELECT nombre, semestre FROM estudiantes WHERE id = %s",
+                           (user_id,), fetchone=True)
 
         if not estudiante:
-            conn.close()
             return render_template('calificaciones.html', calificaciones=None)
 
-        semestre_actual = estudiante['semestre']
+        nombre_estudiante, semestre_actual = estudiante
 
-        # Luego obtenemos solo las calificaciones de ese semestre
-        calificaciones = conn.execute('''
-            SELECT c.calificacion, m.nombre AS materia_nombre, ? AS estudiante_nombre, ? AS estudiante_semestre
+        calificaciones = query('''
+            SELECT c.calificacion,
+                   m.nombre AS materia_nombre,
+                   %s AS estudiante_nombre,
+                   %s AS estudiante_semestre
             FROM calificaciones c
             JOIN materias m ON c.materia = m.id
-            WHERE c.user_id = ? AND m.semestre = ?
-        ''', (estudiante['nombre'], semestre_actual, user_id, semestre_actual)).fetchall()
+            WHERE c.user_id = %s AND m.semestre = %s
+        ''', (nombre_estudiante, semestre_actual, user_id, semestre_actual), fetchall=True)
 
-        conn.close()
+        return render_template('calificaciones.html',
+                               calificaciones=calificaciones,
+                               semestre_actual=semestre_actual)
 
-        if not calificaciones:
-            return render_template('calificaciones.html', calificaciones=None)
-
-        calificaciones_dicts = [dict(row) for row in calificaciones]
-        return render_template(
-            'calificaciones.html',
-            calificaciones=calificaciones_dicts,
-            semestre_actual=semestre_actual
-        )
     except Exception as e:
         return f"Ha ocurrido un error: {str(e)}", 500
+
 
 @app.route('/add_calificacion', methods=['POST'])
 def add_calificacion():
@@ -553,14 +560,15 @@ def add_calificacion():
         calificacion = request.form['calificacion']
         user_id = session.get('user_id')
 
-        conn = get_db_connection()
-        conn.execute('INSERT INTO calificaciones (user_id, materia, calificacion) VALUES (?, ?, ?)', (user_id, materia, calificacion))
-        conn.commit()
-        conn.close()
+        query("INSERT INTO calificaciones (user_id, materia, calificacion) VALUES (%s, %s, %s)",
+              (user_id, materia, calificacion), commit=True)
+
         return redirect(url_for('ver_calificaciones'))
+
     except Exception as e:
         print(f"Error al añadir calificación: {e}")
-        return str(e)
+        return str(e), 500
+
 
 @app.route('/delete_materia', methods=['POST'])
 def delete_materia():
@@ -570,23 +578,15 @@ def delete_materia():
         if not materia_id:
             return jsonify({'success': False, 'message': 'ID de materia no proporcionado.'})
 
-        conn = get_db_connection()
+        query("DELETE FROM materias WHERE id = %s", (materia_id,), commit=True)
+        query("DELETE FROM calificaciones WHERE materia = %s", (materia_id,), commit=True)
 
-        # Eliminar la materia
-        conn.execute('DELETE FROM materias WHERE id = ?', (materia_id,))
-        conn.commit()
-
-        # Eliminar calificaciones relacionadas
-        conn.execute('DELETE FROM calificaciones WHERE materia = ?', (materia_id,))
-        conn.commit()
-        conn.close()
-
-        # Devolver una respuesta JSON exitosa
         return jsonify({'success': True, 'message': 'Materia eliminada con éxito.'})
 
     except Exception as e:
         print(f"Error al eliminar materia: {e}")
         return jsonify({'success': False, 'message': str(e)})
+
 
 @app.route('/calificaciones')
 def mostrar_calificaciones():
@@ -594,8 +594,7 @@ def mostrar_calificaciones():
     if not user_id:
         return redirect(url_for('login'))
 
-    conn = get_db_connection()
-    calificaciones = conn.execute('''
+    calificaciones = query('''
         SELECT c.calificacion,
                m.nombre AS materia_nombre,
                m.licenciatura,
@@ -605,14 +604,10 @@ def mostrar_calificaciones():
         FROM calificaciones c
         JOIN materias m ON c.materia = m.id
         JOIN estudiantes e ON c.user_id = e.id
-        WHERE c.user_id = ?
-    ''', (user_id,)).fetchall()
-    conn.close()
+        WHERE c.user_id = %s
+    ''', (user_id,), fetchall=True)
 
-    calificaciones = [dict(row) for row in calificaciones]
-
-    # Calcula el semestre más alto entre todas las materias calificadas
-    semestre_actual = max([row['semestre'] for row in calificaciones]) if calificaciones else None
+    semestre_actual = max([row[3] for row in calificaciones]) if calificaciones else None
 
     return render_template('calificaciones.html',
                            calificaciones=calificaciones,
@@ -620,8 +615,6 @@ def mostrar_calificaciones():
 
 @app.route('/registrar-calificacion', methods=['GET', 'POST'])
 def registrar_calificacion():
-    conn = get_db_connection()
-
     # 📝 Procesar formulario (POST)
     if request.method == 'POST':
         alumno_id = request.form['alumno_id']
@@ -629,50 +622,47 @@ def registrar_calificacion():
         calificacion = request.form['calificacion']
 
         try:
-            registro = conn.execute(
-                'SELECT id FROM calificaciones WHERE user_id = ? AND materia = ?',
-                (alumno_id, materia_id)
-            ).fetchone()
+            registro = query(
+                "SELECT id FROM calificaciones WHERE user_id = %s AND materia = %s",
+                (alumno_id, materia_id),
+                fetchone=True
+            )
 
             if registro:
-                conn.execute(
-                    'UPDATE calificaciones SET calificacion = ? WHERE user_id = ? AND materia = ?',
-                    (calificacion, alumno_id, materia_id)
+                query(
+                    "UPDATE calificaciones SET calificacion = %s WHERE user_id = %s AND materia = %s",
+                    (calificacion, alumno_id, materia_id),
+                    commit=True
                 )
                 mensaje = '🔄 Calificación actualizada con éxito.'
             else:
-                conn.execute(
-                    'INSERT INTO calificaciones (user_id, materia, calificacion) VALUES (?, ?, ?)',
-                    (alumno_id, materia_id, calificacion)
+                query(
+                    "INSERT INTO calificaciones (user_id, materia, calificacion) VALUES (%s, %s, %s)",
+                    (alumno_id, materia_id, calificacion),
+                    commit=True
                 )
                 mensaje = '✅ Calificación registrada con éxito.'
 
-            conn.commit()
-
         except Exception as e:
             mensaje = f'⚠️ Error al guardar la calificación: {str(e)}'
-
-        finally:
-            conn.close()
 
         return redirect(url_for('registrar_calificacion', mensaje=mensaje))
 
     # 📦 Renderizar vista (GET)
     mensaje = request.args.get('mensaje')
 
-    alumnos_sql = conn.execute('SELECT * FROM estudiantes').fetchall()
-    materias_sql = conn.execute('SELECT * FROM materias').fetchall()
+    alumnos_sql = query("SELECT * FROM estudiantes", fetchall=True)
+    materias_sql = query("SELECT * FROM materias", fetchall=True)
 
     # Convertir cada Row a diccionario para compatibilidad con tojson
-    alumnos = [dict(a) for a in alumnos_sql]
-    materias = [dict(m) for m in materias_sql]
+    alumnos = [dict(zip([desc[0] for desc in g.db_conn.cursor().description], row)) for row in alumnos_sql]
+    materias = [dict(zip([desc[0] for desc in g.db_conn.cursor().description], row)) for row in materias_sql]
 
     # 📚 Agrupar alumnos por licenciatura y semestre
     alumnos_agrupados = {}
     for alumno in alumnos:
         lic = alumno['licenciatura']
         sem = alumno['semestre']
-
         alumnos_agrupados.setdefault(lic, {}).setdefault(sem, []).append(alumno)
 
     # 🔠 Ordenar alumnos por nombre
@@ -680,41 +670,40 @@ def registrar_calificacion():
         for sem in alumnos_agrupados[lic]:
             alumnos_agrupados[lic][sem].sort(key=lambda x: x['nombre'])
 
-    conn.close()
-
     return render_template('registrar_calificacion.html',
                            alumnos=alumnos,
                            materias=materias,
                            mensaje=mensaje,
                            alumnos_agrupados=alumnos_agrupados)
 
+
 @app.route('/guardar-calificacion', methods=['POST'])
 def guardar_calificacion():
-    conn = get_db_connection()
-
     alumno_id = request.form['alumno_id']
     materia_id = request.form['materia_id']
     calificacion = request.form['calificacion']
 
     try:
-        registro = conn.execute(
-            'SELECT id FROM calificaciones WHERE user_id = ? AND materia = ?',
-            (alumno_id, materia_id)
-        ).fetchone()
+        registro = query(
+            "SELECT id FROM calificaciones WHERE user_id = %s AND materia = %s",
+            (alumno_id, materia_id),
+            fetchone=True
+        )
 
         if registro:
-            conn.execute(
-                'UPDATE calificaciones SET calificacion = ? WHERE user_id = ? AND materia = ?',
-                (calificacion, alumno_id, materia_id)
+            query(
+                "UPDATE calificaciones SET calificacion = %s WHERE user_id = %s AND materia = %s",
+                (calificacion, alumno_id, materia_id),
+                commit=True
             )
             mensaje = '🔄 Calificación actualizada con éxito.'
         else:
-            conn.execute(
-                'INSERT INTO calificaciones (user_id, materia, calificacion) VALUES (?, ?, ?)',
-                (alumno_id, materia_id, calificacion)
+            query(
+                "INSERT INTO calificaciones (user_id, materia, calificacion) VALUES (%s, %s, %s)",
+                (alumno_id, materia_id, calificacion),
+                commit=True
             )
             mensaje = '✅ Calificación registrada con éxito.'
-        conn.commit()
 
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'exito': True, 'mensaje': mensaje})
@@ -723,11 +712,10 @@ def guardar_calificacion():
         mensaje = f'⚠️ Error al guardar la calificación: {str(e)}'
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'exito': False, 'mensaje': mensaje})
-    finally:
-        conn.close()
 
     # Si no es AJAX, redirige (por si quieres usarlo desde un formulario normal)
     return redirect(url_for('registrar_calificacion', mensaje=mensaje))
+
 
 @app.route('/actualizar_semestre_alumnos', methods=['POST'])
 def actualizar_semestre_alumnos():
@@ -747,20 +735,17 @@ def actualizar_semestre_alumnos():
     if semestre_destino_int < 1:
         return "El semestre destino no puede ser menor que 1", 400
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        'UPDATE estudiantes SET semestre = ? WHERE licenciatura = ? AND semestre = ?',
-        (semestre_destino_int, licenciatura, semestre_actual_int)
+    filas_actualizadas = query(
+        "UPDATE estudiantes SET semestre = %s WHERE licenciatura = %s AND semestre = %s",
+        (semestre_destino_int, licenciatura, semestre_actual_int),
+        commit=True
     )
-    filas_actualizadas = cursor.rowcount
-    conn.commit()
-    conn.close()
 
-    if filas_actualizadas == 0:
+    if not filas_actualizadas:
         return jsonify({'error': 'No se encontraron alumnos en ese semestre.'}), 404
 
     return jsonify({'mensaje': 'Semestres actualizados correctamente'})
+
 
 @app.route('/historial')
 def historial_academico():
@@ -768,37 +753,33 @@ def historial_academico():
     if not user_id:
         return redirect(url_for('login'))
 
-    conn = get_db_connection()
-
-    resultado = conn.execute('''
+    resultado = query('''
         SELECT m.licenciatura,
                m.semestre,
                m.nombre AS materia,
                c.calificacion
         FROM calificaciones c
         JOIN materias m ON c.materia = m.id
-        WHERE c.user_id = ?
+        WHERE c.user_id = %s
         ORDER BY m.licenciatura, m.semestre, m.nombre
-    ''', (user_id,)).fetchall()
-
-    conn.close()
+    ''', (user_id,), fetchall=True)
 
     # Agrupar historial por licenciatura y semestre
     historial = {}
     promedios_por_semestre = {}
 
     for fila in resultado:
-        lic = fila['licenciatura']
-        sem = int(fila['semestre'])  # ✅ Asegura que sea numérico
+        lic = fila[0]
+        sem = int(fila[1])  # ✅ Asegura que sea numérico
 
         # Guardar materias y calificaciones
         historial.setdefault(lic, {}).setdefault(sem, []).append({
-            'materia': fila['materia'],
-            'calificacion': fila['calificacion']
+            'materia': fila[2],
+            'calificacion': fila[3]
         })
 
         # Para calcular promedio por semestre
-        promedios_por_semestre.setdefault(sem, []).append(fila['calificacion'])
+        promedios_por_semestre.setdefault(sem, []).append(fila[3])
 
     # Calcular promedios finales por semestre
     promedios_por_semestre = {
@@ -812,9 +793,7 @@ def historial_academico():
 
 @app.route('/ver_historial/<int:estudiante_id>')
 def ver_historial_estudiante(estudiante_id):
-    conn = get_db_connection()
-
-    resultado = conn.execute('''
+    resultado = query('''
         SELECT e.nombre AS estudiante,
                m.licenciatura,
                m.semestre,
@@ -823,11 +802,9 @@ def ver_historial_estudiante(estudiante_id):
         FROM calificaciones c
         JOIN materias m ON c.materia = m.id
         JOIN estudiantes e ON c.user_id = e.id
-        WHERE c.user_id = ?
+        WHERE c.user_id = %s
         ORDER BY m.licenciatura, m.semestre, m.nombre
-    ''', (estudiante_id,)).fetchall()
-
-    conn.close()
+    ''', (estudiante_id,), fetchall=True)
 
     if not resultado:
         flash('Este estudiante aún no tiene calificaciones registradas.', 'warning')
@@ -837,13 +814,13 @@ def ver_historial_estudiante(estudiante_id):
     promedios_por_semestre = {}
 
     for fila in resultado:
-        lic = fila['licenciatura']
-        sem = int(fila['semestre'])
+        lic = fila[1]  # licenciatura
+        sem = int(fila[2])  # semestre
         historial.setdefault(lic, {}).setdefault(sem, []).append({
-            'materia': fila['materia'],
-            'calificacion': fila['calificacion']
+            'materia': fila[3],
+            'calificacion': fila[4]
         })
-        promedios_por_semestre.setdefault(sem, []).append(fila['calificacion'])
+        promedios_por_semestre.setdefault(sem, []).append(fila[4])
 
     promedios_por_semestre = {
         sem: round(sum(califs) / len(califs), 1)
@@ -851,7 +828,7 @@ def ver_historial_estudiante(estudiante_id):
     }
 
     return render_template('historial_academico.html',
-                           estudiante=resultado[0]['estudiante'],
+                           estudiante=resultado[0][0],
                            historial=historial,
                            promedios_por_semestre=promedios_por_semestre)
 
@@ -864,100 +841,80 @@ def update_calificacion():
     materia_id = request.form.get('materia_calificar')
     calificacion = request.form.get('calificacion')
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Buscar al alumno en la base de datos
-    query = '''
+    alumno = query('''
         SELECT id FROM estudiantes
-        WHERE nombre = ? AND licenciatura = ? AND semestre = ?
-    '''
-    cursor.execute(query, (nombre_alumno, licenciatura, semestre))
-    alumno = cursor.fetchone()
+        WHERE nombre = %s AND licenciatura = %s AND semestre = %s
+    ''', (nombre_alumno, licenciatura, semestre), fetchone=True)
 
     if not alumno:
         return "Alumno no encontrado", 404
 
-    alumno_id = alumno['id']
+    alumno_id = alumno[0]
 
-    # Verificar si ya existe una calificación para este alumno y esta materia
-    query = '''
+    calificacion_existente = query('''
         SELECT id FROM calificaciones
-        WHERE user_id = ? AND materia = ?
-    '''
-    cursor.execute(query, (alumno_id, materia_id))
-    calificacion_existente = cursor.fetchone()
+        WHERE user_id = %s AND materia = %s
+    ''', (alumno_id, materia_id), fetchone=True)
 
     if calificacion_existente:
-        # Si existe, actualizar la calificación
-        cursor.execute('''
+        query('''
             UPDATE calificaciones
-            SET calificacion = ?
-            WHERE id = ?
-        ''', (calificacion, calificacion_existente['id']))
+            SET calificacion = %s
+            WHERE id = %s
+        ''', (calificacion, calificacion_existente[0]), commit=True)
     else:
-        # Si no existe, insertar nueva calificación
-        cursor.execute('''
+        query('''
             INSERT INTO calificaciones (user_id, materia, calificacion)
-            VALUES (?, ?, ?)
-        ''', (alumno_id, materia_id, calificacion))
+            VALUES (%s, %s, %s)
+        ''', (alumno_id, materia_id, calificacion), commit=True)
 
-    conn.commit()
-    conn.close()
-
-    # Redirigir al usuario después de actualizar/insertar
     return redirect(url_for('ver_calificaciones'))
+
 
 @app.route('/alumnos')
 def alumnos():
-    conn = get_db_connection()
-    alumnos = conn.execute('SELECT * FROM estudiantes').fetchall()
-    conn.close()
+    alumnos = query("SELECT * FROM estudiantes", fetchall=True)
 
     alumnos_por_licenciatura = {}
     for alumno in alumnos:
-        licenciatura = alumno["licenciatura"]
-        semestre = alumno["semestre"]
-        if licenciatura not in alumnos_por_licenciatura:
-            alumnos_por_licenciatura[licenciatura] = {}
-        if semestre not in alumnos_por_licenciatura[licenciatura]:
-            alumnos_por_licenciatura[licenciatura][semestre] = []
-        alumnos_por_licenciatura[licenciatura][semestre].append(dict(alumno))
+        lic = alumno[2]  # licenciatura
+        sem = alumno[3]  # semestre
+        alumnos_por_licenciatura.setdefault(lic, {}).setdefault(sem, []).append(dict(zip(
+            [desc[0] for desc in g.db_conn.cursor().description], alumno
+        )))
 
     return render_template('alumnos.html', alumnos=alumnos_por_licenciatura)
 
-def inicializar_materias_para_alumno(alumno_id, licenciatura, semestre, conn):
-    # Selecciona las materias correspondientes a la licenciatura y semestre del alumno
-    materias = conn.execute('SELECT id FROM materias WHERE licenciatura = ? AND semestre = ?', (licenciatura, semestre)).fetchall()
-    
-    # Inicializa las calificaciones para cada materia con una calificación predeterminada de 0
+
+def inicializar_materias_para_alumno(alumno_id, licenciatura, semestre):
+    materias = query("SELECT id FROM materias WHERE licenciatura = %s AND semestre = %s",
+                     (licenciatura, semestre), fetchall=True)
+
     for materia in materias:
-        conn.execute('INSERT INTO calificaciones (user_id, materia, calificacion) VALUES (?, ?, ?)', (alumno_id, materia['id'], 0))
-    conn.commit()
+        query("INSERT INTO calificaciones (user_id, materia, calificacion) VALUES (%s, %s, %s)",
+              (alumno_id, materia[0], 0), commit=True)
+
 
 @app.route('/gestion_alumnos', methods=['GET'])
 def gestion_alumnos():
-    conn = get_db_connection()
-    alumnos = conn.execute('SELECT * FROM estudiantes').fetchall()
-    conn.close()
+    alumnos = query("SELECT * FROM estudiantes", fetchall=True)
 
     alumnos_por_licenciatura = {}
     for alumno in alumnos:
-        licenciatura = alumno["licenciatura"]
-        semestre = alumno["semestre"]
-        if licenciatura not in alumnos_por_licenciatura:
-            alumnos_por_licenciatura[licenciatura] = {}
-        if semestre not in alumnos_por_licenciatura[licenciatura]:
-            alumnos_por_licenciatura[licenciatura][semestre] = []
-        alumnos_por_licenciatura[licenciatura][semestre].append(dict(alumno))
+        lic = alumno[2]
+        sem = alumno[3]
+        alumnos_por_licenciatura.setdefault(lic, {}).setdefault(sem, []).append(dict(zip(
+            [desc[0] for desc in g.db_conn.cursor().description], alumno
+        )))
 
-    for licenciatura in alumnos_por_licenciatura:
-        for semestre in alumnos_por_licenciatura[licenciatura]:
-            alumnos_por_licenciatura[licenciatura][semestre] = sorted(
-                alumnos_por_licenciatura[licenciatura][semestre], key=lambda x: x['nombre']
+    for lic in alumnos_por_licenciatura:
+        for sem in alumnos_por_licenciatura[lic]:
+            alumnos_por_licenciatura[lic][sem] = sorted(
+                alumnos_por_licenciatura[lic][sem], key=lambda x: x['nombre']
             )
 
     return render_template('gestion_alumnos.html', alumnos=alumnos_por_licenciatura)
+
 
 @app.route('/datos_alumnos', methods=['POST'])
 def datos_alumnos():
@@ -966,34 +923,26 @@ def datos_alumnos():
     licenciatura = request.form['licenciatura']
     semestre = request.form['semestre']
 
-    conn = get_db_connection()
-
-    # Verificar si ya existe un alumno con esa matrícula
-    alumno_existente = conn.execute(
-        'SELECT * FROM estudiantes WHERE matricula = ?', (matricula,)
-    ).fetchone()
+    alumno_existente = query(
+        "SELECT * FROM estudiantes WHERE matricula = %s", (matricula,), fetchone=True
+    )
 
     if alumno_existente:
-        # Actualizamos datos si ya existe
-        conn.execute('''
+        query('''
             UPDATE estudiantes
-            SET nombre = ?, licenciatura = ?, semestre = ?
-            WHERE matricula = ?
-        ''', (nombre, licenciatura, semestre, matricula))
+            SET nombre = %s, licenciatura = %s, semestre = %s
+            WHERE matricula = %s
+        ''', (nombre, licenciatura, semestre, matricula), commit=True)
         mensaje = f'🔄 Alumno actualizado al {semestre}° semestre.'
     else:
-        # Insertamos nuevo alumno
-        conn.execute('''
+        query('''
             INSERT INTO estudiantes (nombre, matricula, licenciatura, semestre)
-            VALUES (?, ?, ?, ?)
-        ''', (nombre, matricula, licenciatura, semestre))
+            VALUES (%s, %s, %s, %s)
+        ''', (nombre, matricula, licenciatura, semestre), commit=True)
         mensaje = f'✅ Alumno registrado correctamente.'
 
-    conn.commit()
-
-    # ⚠️ Redirigir de nuevo a registrar_calificacion con mensaje
-    conn.close()
     return redirect(url_for('registrar_calificacion', mensaje=mensaje))
+
 
 @app.route('/add_materia', methods=['POST'])
 def add_materia():
@@ -1014,23 +963,10 @@ def add_materia():
         return redirect(url_for('gestion_materias'))
 
     try:
-        with get_db_connection() as conn:
-            cur = conn.execute('''
-                INSERT INTO materias (nombre, licenciatura, semestre)
-                VALUES (?, ?, ?)
-            ''', (nombre, licenciatura, semestre))
-            materia_id = cur.lastrowid
-
-            # Tabla auxiliar opcional
-            try:
-                conn.execute('''
-                    INSERT INTO licenciaturas_materias (materia_id, licenciatura, semestre)
-                    VALUES (?, ?, ?)
-                ''', (materia_id, licenciatura, semestre))
-            except Exception:
-                pass
-
-            conn.commit()
+        query('''
+            INSERT INTO materias (nombre, licenciatura, semestre)
+            VALUES (%s, %s, %s)
+        ''', (nombre, licenciatura, semestre), commit=True)
 
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return 'Materia añadida', 200
@@ -1043,26 +979,25 @@ def add_materia():
 
     return redirect(url_for('gestion_materias'))
 
+
 def verificar_materia_duplicada(nombre, licenciatura, semestre):
-    with get_db_connection() as conn:
-        resultado = conn.execute('''
-            SELECT 1 FROM materias
-            WHERE nombre = ? AND licenciatura = ? AND semestre = ?
-        ''', (nombre, licenciatura, semestre)).fetchone()
+    resultado = query('''
+        SELECT 1 FROM materias
+        WHERE nombre = %s AND licenciatura = %s AND semestre = %s
+    ''', (nombre, licenciatura, semestre), fetchone=True)
     return resultado is not None
 
 @app.route('/delete_alumno', methods=['POST'])
 def delete_alumno():
     alumno_id = request.form['id']
-    conn = get_db_connection()
-    conn.execute('DELETE FROM estudiantes WHERE id = ?', (alumno_id,))
-    conn.commit()
-    conn.close()
+    query("DELETE FROM estudiantes WHERE id = %s", (alumno_id,), commit=True)
     return redirect(url_for('alumnos'))
+
 
 @app.route('/error')
 def error():
     return 'Nombre de usuario o contraseña incorrectos. Por favor, intenta nuevamente.'
+
 
 @app.route('/materias')
 def gestion_materias():
@@ -1070,89 +1005,69 @@ def gestion_materias():
     if not user_id:
         return redirect(url_for('index'))
 
-    conn = get_db_connection()
-
-    query = '''
+    materias = query('''
         SELECT m.*, c.calificacion
         FROM materias m
-        LEFT JOIN calificaciones c ON m.id = c.materia AND c.user_id = ?
+        LEFT JOIN calificaciones c ON m.id = c.materia AND c.user_id = %s
         ORDER BY m.licenciatura, m.semestre, m.nombre
-    '''
-    materias = conn.execute(query, (user_id,)).fetchall()
-    conn.close()
+    ''', (user_id,), fetchall=True)
 
-    # Agrupar materias por licenciatura y semestre
     materias_por_licenciatura = {}
     for materia in materias:
-        licenciatura = materia["licenciatura"]
-        semestre = materia["semestre"]
-
-        if licenciatura not in materias_por_licenciatura:
-            materias_por_licenciatura[licenciatura] = {}
-
-        if semestre not in materias_por_licenciatura[licenciatura]:
-            materias_por_licenciatura[licenciatura][semestre] = []
-
-        materias_por_licenciatura[licenciatura][semestre].append(dict(materia))
+        lic = materia[2]  # licenciatura
+        sem = materia[3]  # semestre
+        materias_por_licenciatura.setdefault(lic, {}).setdefault(sem, []).append(dict(zip(
+            [desc[0] for desc in g.db_conn.cursor().description], materia
+        )))
 
     return render_template('materias.html', materias=materias_por_licenciatura)
 
+
 @app.route('/ver_materias')
 def ver_materias():
-    conn = get_db_connection()
-    materias = conn.execute('SELECT * FROM materias ORDER BY licenciatura, semestre, nombre').fetchall()
-    conn.close()
+    materias = query("SELECT * FROM materias ORDER BY licenciatura, semestre, nombre", fetchall=True)
 
     estructura = {}
     for m in materias:
-        lic = m['licenciatura']
-        sem = str(m['semestre'])
-        estructura.setdefault(lic, {}).setdefault(sem, []).append(m)
+        lic = m[2]
+        sem = str(m[3])
+        estructura.setdefault(lic, {}).setdefault(sem, []).append(dict(zip(
+            [desc[0] for desc in g.db_conn.cursor().description], m
+        )))
 
-    # Asegura que los 7 semestres estén presentes aunque estén vacíos
     for lic in estructura:
         for s in range(1, 8):
             estructura[lic].setdefault(str(s), [])
 
     return render_template('ver_materias.html', materias=estructura)
 
+
 @app.route('/eliminar_materia/<int:materia_id>', methods=['POST'])
 def eliminar_materia(materia_id):
-    conn = get_db_connection()
-    conn.execute('DELETE FROM materias WHERE id = ?', (materia_id,))
-    conn.commit()
-    conn.close()
+    query("DELETE FROM materias WHERE id = %s", (materia_id,), commit=True)
     flash('Materia eliminada exitosamente.', 'success')
     return redirect(url_for('ver_materias'))
- 
+
+
 @app.route('/obtener_materias', methods=['GET'])
 def obtener_materias():
     licenciatura = request.args.get('licenciatura')
     semestre = request.args.get('semestre')
 
-    conn = sqlite3.connect('database.db')
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-
-    query = '''
+    materias = query('''
         SELECT m.id, m.nombre 
         FROM materias m
         JOIN licenciaturas_materias lm ON m.id = lm.materia_id
-        WHERE lm.licenciatura = ? AND lm.semestre = ?
-    '''
-    cursor.execute(query, (licenciatura, semestre))
-    materias = cursor.fetchall()
-    conn.close()
+        WHERE lm.licenciatura = %s AND lm.semestre = %s
+    ''', (licenciatura, semestre), fetchall=True)
 
-    materias_list = [{'id': m['id'], 'nombre': m['nombre']} for m in materias]
+    materias_list = [{'id': m[0], 'nombre': m[1]} for m in materias]
     return jsonify({'materias': materias_list})
+
 
 @app.route('/gestionar_materias', methods=['GET', 'POST'])
 def gestionar_materias():
-    conn = get_db_connection()
-    
-    # Consulta para obtener todas las materias duplicadas
-    query = '''
+    materias_duplicadas = query('''
         SELECT id, nombre, licenciatura, semestre
         FROM materias
         WHERE id NOT IN (
@@ -1160,31 +1075,25 @@ def gestionar_materias():
             FROM materias
             GROUP BY nombre, licenciatura, semestre
         )
-    '''
-    materias_duplicadas = conn.execute(query).fetchall()
-    conn.close()
+    ''', fetchall=True)
 
     if request.method == 'POST':
-        # Si se envía un formulario con IDs a eliminar
         ids_para_eliminar = request.form.getlist('materias_eliminar')
-        conn = get_db_connection()
         for materia_id in ids_para_eliminar:
-            conn.execute('DELETE FROM materias WHERE id = ?', (materia_id,))
-        conn.commit()
-        conn.close()
+            query("DELETE FROM materias WHERE id = %s", (materia_id,), commit=True)
         flash('Las materias seleccionadas han sido eliminadas.', 'success')
         return redirect(url_for('gestionar_materias'))
 
     return render_template('gestionar_materias.html', materias_duplicadas=materias_duplicadas)
 
+
 @app.route('/materias_calificadas', methods=['GET'])
 def materias_calificadas():
-    user_id = request.args.get('user_id')  # ID del alumno
-    licenciatura = request.args.get('licenciatura')  # Licenciatura seleccionada
-    semestre = request.args.get('semestre')  # Semestre seleccionado
+    user_id = request.args.get('user_id')
+    licenciatura = request.args.get('licenciatura')
+    semestre = request.args.get('semestre')
 
-    conn = get_db_connection()
-    query = '''
+    materias = query('''
         SELECT 
             c.calificacion, 
             m.nombre AS materia_nombre, 
@@ -1194,37 +1103,32 @@ def materias_calificadas():
         FROM calificaciones c
         JOIN materias m ON c.materia = m.id
         JOIN estudiantes e ON c.user_id = e.id
-        WHERE e.id = ? AND e.licenciatura = ? AND m.semestre = ?
+        WHERE e.id = %s AND e.licenciatura = %s AND m.semestre = %s
         ORDER BY m.semestre;
-    '''
-    materias = conn.execute(query, (user_id, licenciatura, semestre)).fetchall()
-    conn.close()
+    ''', (user_id, licenciatura, semestre), fetchall=True)
 
     return render_template('materias_calificadas.html', materias=materias, user_id=user_id)
 
+
 @app.route('/editar_calificacion/<int:calificacion_id>', methods=['GET', 'POST'])
 def editar_calificacion(calificacion_id):
-    conn = get_db_connection()
     if request.method == 'POST':
         nueva_calificacion = request.form['calificacion']
-        conn.execute('UPDATE calificaciones SET calificacion = ? WHERE id = ?', (nueva_calificacion, calificacion_id))
-        conn.commit()
-        conn.close()
+        query("UPDATE calificaciones SET calificacion = %s WHERE id = %s",
+              (nueva_calificacion, calificacion_id), commit=True)
         flash('Calificación actualizada correctamente.', 'success')
         return redirect(url_for('ver_calificaciones', user_id=request.form['user_id']))
 
-    # Obtener la información de la calificación actual
-    calificacion = conn.execute('SELECT * FROM calificaciones WHERE id = ?', (calificacion_id,)).fetchone()
-    conn.close()
+    calificacion = query("SELECT * FROM calificaciones WHERE id = %s",
+                         (calificacion_id,), fetchone=True)
 
     return render_template('editar_calificacion.html', calificacion=calificacion)
+
 
 @app.route('/eliminar_duplicados', methods=['GET', 'POST'])
 def eliminar_duplicados():
     if request.method == 'GET':
-        conn = get_db_connection()
-        # Identifica IDs duplicados
-        ids_duplicados = conn.execute('''
+        ids_duplicados = query('''
             WITH cte AS (
                 SELECT id, ROW_NUMBER() OVER (
                     PARTITION BY user_id, materia ORDER BY id
@@ -1232,14 +1136,13 @@ def eliminar_duplicados():
                 FROM calificaciones
             )
             SELECT id FROM cte WHERE rn > 1;
-        ''').fetchall()
+        ''', fetchall=True)
 
-        duplicados_ids = [row['id'] for row in ids_duplicados]
+        duplicados_ids = [row[0] for row in ids_duplicados]
 
-        # Si hay duplicados, obtener sus detalles
         if duplicados_ids:
-            placeholders = ','.join(['?'] * len(duplicados_ids))
-            calificaciones_duplicadas = conn.execute(f'''
+            placeholders = ','.join(['%s'] * len(duplicados_ids))
+            calificaciones_duplicadas = query(f'''
                 SELECT c.id, c.calificacion,
                        m.nombre AS materia_nombre,
                        e.nombre AS estudiante_nombre
@@ -1247,11 +1150,10 @@ def eliminar_duplicados():
                 JOIN materias m ON c.materia = m.id
                 JOIN estudiantes e ON c.user_id = e.id
                 WHERE c.id IN ({placeholders});
-            ''', duplicados_ids).fetchall()
+            ''', tuple(duplicados_ids), fetchall=True)
         else:
             calificaciones_duplicadas = []
 
-        conn.close()
         return render_template('eliminar_duplicados.html', calificaciones=calificaciones_duplicadas)
 
     elif request.method == 'POST':
@@ -1260,17 +1162,15 @@ def eliminar_duplicados():
             flash('No se seleccionó ninguna calificación para eliminar.', 'danger')
             return redirect(url_for('eliminar_duplicados'))
 
-        conn = get_db_connection()
-        conn.executemany('DELETE FROM calificaciones WHERE id = ?', [(id,) for id in duplicados_ids])
-        conn.commit()
-        conn.close()
+        for id in duplicados_ids:
+            query("DELETE FROM calificaciones WHERE id = %s", (id,), commit=True)
 
         flash(f'Se eliminaron {len(duplicados_ids)} calificaciones duplicadas.', 'success')
         return redirect(url_for('eliminar_duplicados'))
 
-    # Fallback por si llega una solicitud inesperada
     return redirect(url_for('ver_calificaciones', user_id=session.get('user_id')))
-    
+
+
 if __name__ == '__main__':
     verificar_datos_materias()
     app.run(debug=True)

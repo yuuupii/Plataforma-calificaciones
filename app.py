@@ -18,38 +18,25 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
 
 # ---------------------------
-# Conexión: Postgres (psycopg2) o SQLite fallback
+# Conexión: Postgres (psycopg2)
 # ---------------------------
 def get_db_connection():
-    """
-    Devuelve una conexión activa:
-    - Si existe DATABASE_URL se intenta conectar via psycopg2 (Postgres).
-    - Si no, se usa SQLite local 'database.db'.
-    Guardamos la conexión en g.db_conn desde before_request.
-    """
-    dsn = os.getenv("DATABASE_URL", "").strip()
-    if not dsn:
-        # SQLite fallback
-        conn = sqlite3.connect("database.db", check_same_thread=False)
-        conn.row_factory = sqlite3.Row
-        conn._flavor = "sqlite"
-        return conn
+    dsn = os.getenv("DATABASE_URL")
 
-    # A veces el URL viene con postgres://, psycopg quiere postgresql://
+    if not dsn:
+        raise RuntimeError("DATABASE_URL no está definida en las variables de entorno")
+
+    # Render a veces usa postgres:// → lo convertimos
     if dsn.startswith("postgres://"):
         dsn = dsn.replace("postgres://", "postgresql://", 1)
 
     try:
-        conn = psycopg2.connect(dsn, cursor_factory=psycopg2.extras.RealDictCursor)
-        conn._flavor = "postgres"
+        conn = psycopg2.connect(dsn)
+        conn.autocommit = True
         return conn
     except Exception as e:
-        # Si falla Postgres, volvemos a SQLite (para desarrollo local)
-        print("⚠️ Error conectando a PostgreSQL, usando SQLite como respaldo:", e)
-        conn = sqlite3.connect("database.db", check_same_thread=False)
-        conn.row_factory = sqlite3.Row
-        conn._flavor = "sqlite"
-        return conn
+        print("❌ Error al conectarse a PostgreSQL:", e)
+        raise
 
 # ---------------------------
 # Helpers para consultas (adapta placeholders y devuelve dicts)

@@ -896,6 +896,10 @@ def delete_alumno():
 # --------------------------------------------------
 # Materias - CRUD y vistas
 # --------------------------------------------------
+@app.route('/materias')
+def materias():
+    return render_template('materias.html')
+
 @app.route('/add_materia', methods=['POST'])
 def add_materia():
     nombre = request.form.get('nombre')

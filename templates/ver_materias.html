@@ -10,23 +10,15 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 
   <style>
-    body {
-      background: #eef3f7;
-    }
+    body { background: #eef3f7; }
 
-    .materia-item {
-      transition: 0.3s ease;
-    }
+    .materia-item { transition: 0.3s ease; }
+    .materia-item.fade-out { opacity: 0; transform: translateX(20px); }
 
-    .materia-item.fade-out {
-      opacity: 0;
-      transform: translateX(20px);
-    }
+    .search-box { max-width: 400px; margin: 0 auto 25px; }
 
-    .search-box {
-      max-width: 400px;
-      margin: 0 auto 25px;
-    }
+    /* Resaltado */
+    mark { background: yellow; padding: 0 4px; }
 
     /* Móviles */
     @media screen and (max-width: 767px) {
@@ -47,9 +39,9 @@
              placeholder="Buscar materia...">
     </div>
 
-    <!-- LISTA -->
+    <!-- LISTA COMPLETA -->
     {% for licenciatura, semestres in materias.items() %}
-    <div class="card mb-4 shadow-sm">
+    <div class="card mb-4 shadow-sm lic-box">
 
       <div class="card-header bg-primary text-white font-weight-bold">
         {{ licenciatura }}
@@ -59,7 +51,7 @@
         <div class="row">
 
           {% for semestre in range(1, 8) %}
-          <div class="col-md-6 col-lg-4 mb-3">
+          <div class="col-md-6 col-lg-4 mb-3 semestre-box">
 
             <div class="border p-3 bg-white rounded shadow-sm">
 
@@ -73,6 +65,7 @@
 
                 {% for materia in lista_ordenada %}
                 <li class="list-group-item d-flex justify-content-between align-items-center materia-item">
+                  
                   <span class="materia-nombre">{{ materia.nombre }}</span>
                   
                   <button class="btn btn-sm btn-danger delete-button"
@@ -80,13 +73,14 @@
                           data-nombre="{{ materia.nombre }}">
                     Eliminar
                   </button>
+
                 </li>
                 {% endfor %}
 
               </ul>
 
               {% else %}
-              <p class="text-muted">Sin materias registradas.</p>
+              <p class="text-muted no-materias">Sin materias registradas.</p>
               {% endif %}
 
             </div>
@@ -98,6 +92,9 @@
     </div>
     {% endfor %}
   </div>
+
+
+
 
 <script>
 /* 🗑️ ELIMINAR CON ANIMACIÓN */
@@ -121,8 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (result.success) {
                 const li = this.closest("li");
                 li.classList.add("fade-out");
-
-                setTimeout(() => li.remove(), 400);
+                setTimeout(() => li.remove(), 300);
             } else {
                 alert("Error: " + result.error);
             }
@@ -130,14 +126,49 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-/* 🔍 BUSCADOR EN TIEMPO REAL */
+
+
+/* 🔍 BUSCADOR AVANZADO CON RESALTADO */
 document.getElementById("buscar").addEventListener("keyup", function () {
     const filtro = this.value.toLowerCase();
-    const items = document.querySelectorAll(".materia-item");
 
-    items.forEach(item => {
-        const texto = item.querySelector(".materia-nombre").innerText.toLowerCase();
+    const materias = document.querySelectorAll(".materia-item");
+
+    materias.forEach(item => {
+        const span = item.querySelector(".materia-nombre");
+        const texto = span.innerText.toLowerCase();
+
+        // Mostrar u ocultar
         item.style.display = texto.includes(filtro) ? "" : "none";
+
+        // Quitar highlight anterior
+        span.innerHTML = span.innerText;
+
+        // Agregar highlight
+        if (filtro.length > 0 && texto.includes(filtro)) {
+            const regex = new RegExp(`(${filtro})`, "gi");
+            span.innerHTML = span.innerText.replace(regex, "<mark>$1</mark>");
+        }
+    });
+
+    // Ocultar semestres vacíos
+    document.querySelectorAll(".semestre-box").forEach(box => {
+        const visibles = box.querySelectorAll(".materia-item:not([style*='display: none'])");
+        const no_materias = box.querySelector(".no-materias");
+
+        if (visibles.length > 0) {
+            box.style.display = "";
+            if (no_materias) no_materias.style.display = "none";
+        } else {
+            box.style.display = "none";
+        }
+    });
+
+    // Ocultar licenciaturas vacías
+    document.querySelectorAll(".lic-box").forEach(box => {
+        const visibles = box.querySelectorAll(".semestre-box:not([style*='display: none'])");
+
+        box.style.display = visibles.length > 0 ? "" : "none";
     });
 });
 </script>

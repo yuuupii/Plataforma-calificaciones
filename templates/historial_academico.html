@@ -1,47 +1,122 @@
 <!DOCTYPE html>
 <html lang="es">
-  <style> 
-    @media screen and (max-width: 576px) {
-    .card-body .row {
-      margin-left: 0;
-      margin-right: 0;
-    }
-
-    .col-md-6, .col-lg-4 {
-      padding-left: 4px;
-      padding-right: 4px;
-    }
-
-    canvas#graficaPromedios {
-      width: 100% !important;
-    }
-  }
-  </style>
 <head>
   <meta charset="UTF-8">
   <title>Historial Académico</title>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/parametros.css') }}">
+
+  <!-- BOOTSTRAP -->
+  <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="{{ url_for('static', filename='css/parametros.css') }}">
+
+  <!-- jsPDF + html2canvas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /*--------------------------------------------------
+      🌙 Modo Oscuro con transición suave
+    --------------------------------------------------*/
+    body {
+      transition: background 0.4s ease, color 0.4s ease;
+    }
+    body.dark-mode {
+      background: #121212 !important;
+      color: #e0e0e0 !important;
+    }
+    .dark-mode .card {
+      background: #1e1e1e !important;
+      border-color: #333 !important;
+      transition: background 0.4s ease;
+    }
+    .dark-mode .card-header {
+      background: #2c2c2c !important;
+      color: #fff !important;
+    }
+    .dark-mode .list-group-item {
+      background: #1e1e1e !important;
+      color: #ccc !important;
+      border-color: #333 !important;
+    }
+
+    /*--------------------------------------------------
+      ✨ Animaciones Suaves
+    --------------------------------------------------*/
+    .fade-in {
+      opacity: 0;
+      animation: fadeIn 0.6s forwards;
+    }
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    .card {
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0px 4px 12px rgba(0,0,0,0.2);
+    }
+
+    /*--------------------------------------------------
+      🎨 Contenedor de la gráfica con margen
+    --------------------------------------------------*/
+    .grafica-wrapper {
+      max-width: 950px;
+      margin: 40px auto;
+      padding: 25px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0px 3px 10px rgba(0,0,0,0.1);
+      transition: background 0.4s ease;
+    }
+    body.dark-mode .grafica-wrapper {
+      background: #1b1b1b !important;
+      box-shadow: 0px 3px 10px rgba(255,255,255,0.08);
+    }
+
+    @media screen and (max-width: 576px) {
+      canvas#graficaPromedios { width: 100% !important; }
+    }
+  </style>
 </head>
-<body>
-<div class="container-fluid mt-5">
+
+<body class="fade-in">
+
+<div class="container-fluid mt-4">
+
+  <!-- BOTONES -->
+  <div class="text-center mb-4">
+    <button id="toggle-dark" class="btn btn-dark mr-2">🌙 Modo oscuro</button>
+    <button id="btnPDF" class="btn btn-danger mr-2">📥 Descargar PDF</button>
+    <button id="btnIMG" class="btn btn-info">🖼 Descargar gráfica</button>
+  </div>
+
   <h2 class="text-center mb-4">Historial Académico</h2>
+
   {% if estudiante %}
     <h5 class="text-center text-muted mb-4">Estudiante: {{ estudiante }}</h5>
   {% endif %}
 
   {% if historial %}
     {% for licenciatura, semestres in historial.items() %}
-      <div class="card mb-4">
+      <div class="card mb-4 fade-in">
         <div class="card-header bg-primary text-white font-weight-bold">
           {{ licenciatura }}
         </div>
+
         <div class="card-body">
           <div class="row">
+
             {% for semestre, materias in semestres|dictsort %}
               <div class="col-md-6 col-lg-4 mb-3">
                 <div class="border rounded p-3 h-100">
                   <h5 class="text-info">Semestre {{ semestre }}</h5>
+
                   {% if materias %}
                     <ul class="list-group list-group-flush mb-2">
                       {% for m in materias %}
@@ -51,6 +126,7 @@
                         </li>
                       {% endfor %}
                     </ul>
+
                     <div class="text-right font-weight-bold text-success">
                       Promedio: {{ promedios_por_semestre[semestre] }}
                     </div>
@@ -60,6 +136,7 @@
                 </div>
               </div>
             {% endfor %}
+
           </div>
         </div>
       </div>
@@ -69,61 +146,145 @@
   {% endif %}
 
   <div class="text-center mt-4">
-    <a href="{{ url_for('mostrar_calificaciones') }}" class="btn btn-outline-secondary">Volver a Calificaciones</a>
+    <a href="{{ url_for('mostrar_calificaciones') }}" class="btn btn-outline-secondary">
+      Volver a Calificaciones
+    </a>
   </div>
 
+  <!-- 📊 GRÁFICA -->
   {% if promedios_por_semestre %}
-  <div class="mt-5">
+  <script id="data-semestres" type="application/json">
+    {{ promedios_por_semestre.keys() | list | tojson }}
+  </script>
+  <script id="data-promedios" type="application/json">
+    {{ promedios_por_semestre.values() | list | tojson }}
+  </script>
+
+  <div class="grafica-wrapper fade-in">
     <h5 class="text-center mb-3">📊 Evolución del Promedio por Semestre</h5>
-    <canvas id="graficaPromedios" height="130"></canvas>
+    <canvas id="graficaPromedios" height="160"></canvas>
   </div>
   {% endif %}
 </div>
 
-<!-- Chart.js CDN -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-{% if promedios_por_semestre %}
-<script type="text/javascript">
-  // Los datos se generan como cadenas JSON válidas
-  const semestres = JSON.parse('{{ promedios_por_semestre.keys() | list | tojson | safe }}');
-  const promedios = JSON.parse('{{ promedios_por_semestre.values() | list | tojson | safe }}');
 
+<!-- ============================
+     SCRIPTS
+============================ -->
+
+<script>
+/* -------------------------
+   🌙 MODO OSCURO
+--------------------------- */
+const toggleDark = document.getElementById("toggle-dark");
+
+toggleDark.addEventListener("click", () => {
+  document.body.classList.toggle("dark-mode");
+  localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
+
+  actualizarColoresGrafica();
+});
+
+if (localStorage.getItem("darkMode") === "true") {
+  document.body.classList.add("dark-mode");
+}
+
+
+/* -------------------------
+   📥 DESCARGAR PDF
+--------------------------- */
+document.getElementById("btnPDF").addEventListener("click", async () => {
+  const { jsPDF } = window.jspdf;
+  const body = document.body;
+
+  const canvas = await html2canvas(body, { scale: 2 });
+  const imgData = canvas.toDataURL("image/png");
+
+  const pdf = new jsPDF("p", "mm", "a4");
+  const pdfWidth = pdf.internal.pageSize.getWidth();
+  const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+  pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+  pdf.save("historial_academico.pdf");
+});
+
+
+/* -------------------------
+   🖼 DESCARGAR GRÁFICA
+--------------------------- */
+document.getElementById("btnIMG").addEventListener("click", () => {
+  const canvas = document.getElementById("graficaPromedios");
+  const enlace = document.createElement("a");
+  enlace.download = "grafica_promedios.png";
+  enlace.href = canvas.toDataURL("image/png");
+  enlace.click();
+});
+
+
+/* -------------------------
+   📊 GRÁFICA
+--------------------------- */
+let grafica;
+
+function crearGrafica() {
   const ctx = document.getElementById('graficaPromedios').getContext('2d');
-  const graficaPromedios = new Chart(ctx, {
+  const semestres = JSON.parse(document.getElementById("data-semestres").textContent);
+  const promedios = JSON.parse(document.getElementById("data-promedios").textContent);
+
+  const modoOscuro = document.body.classList.contains("dark-mode");
+
+  const barColor = modoOscuro
+    ? "rgba(0, 200, 255, 0.5)"
+    : "rgba(40, 167, 69, 0.5)";
+
+  const borderColor = modoOscuro
+    ? "rgba(0, 200, 255, 1)"
+    : "rgba(40, 167, 69, 1)";
+
+  grafica = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: semestres.map(s => 'Semestre ' + s),
+      labels: semestres.map(s => "Semestre " + s),
       datasets: [{
-        label: 'Promedio',
+        label: "Promedio",
         data: promedios,
-        backgroundColor: 'rgba(40, 167, 69, 0.4)',
-        borderColor: 'rgba(40, 167, 69, 1)',
+        backgroundColor: barColor,
+        borderColor: borderColor,
         borderWidth: 2
       }]
     },
     options: {
       responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 100,
-          ticks: { stepSize: 10 }
-        }
+      animation: {
+        duration: 1200,
+        easing: "easeOutQuart"
       },
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top'
-        },
-        tooltip: {
-          mode: 'index',
-          intersect: false
-        }
+      scales: {
+        y: { beginAtZero: true, max: 100 }
       }
     }
   });
+}
+
+function actualizarColoresGrafica() {
+  if (!grafica) return;
+
+  const modoOscuro = document.body.classList.contains("dark-mode");
+
+  grafica.data.datasets[0].backgroundColor = modoOscuro
+    ? "rgba(0, 200, 255, 0.5)"
+    : "rgba(40, 167, 69, 0.5)";
+
+  grafica.data.datasets[0].borderColor = modoOscuro
+    ? "rgba(0, 200, 255, 1)"
+    : "rgba(40, 167, 69, 1)";
+
+  grafica.update();
+}
+
+crearGrafica();
 </script>
-{% endif %}
+
 </body>
 </html>

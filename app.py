@@ -652,19 +652,19 @@ def guardar_calificacion():
 # --------------------------------------------------
 # Eliminar materia (AJAX)
 # --------------------------------------------------
-@app.route('/delete_materia', methods=['POST'])
-def delete_materia():
-    materia_id = request.form.get('id')
-    if not materia_id:
-        return jsonify({'success': False, 'message': 'ID de materia no proporcionado'})
+@app.route('/eliminar_materia/<int:materia_id>', methods=['POST'])
+def eliminar_materia(materia_id):
+    try:
+        # Borrar calificaciones relacionadas
+        db_query("DELETE FROM calificaciones WHERE materia = %s", (materia_id,), commit=True)
 
-    # Eliminar calificaciones asociadas
-    db_query("DELETE FROM calificaciones WHERE materia = %s", (materia_id,), commit=True)
+        # Borrar la materia
+        db_query("DELETE FROM materias WHERE id = %s", (materia_id,), commit=True)
 
-    # Eliminar la materia
-    db_query("DELETE FROM materias WHERE id = %s", (materia_id,), commit=True)
-
-    return jsonify({'success': True, 'message': 'Materia eliminada correctamente'})
+        return jsonify({"success": True})
+    except Exception as e:
+        print("❌ Error al eliminar materia:", e)
+        return jsonify({"success": False, "error": str(e)})
 
 # --------------------------------------------------
 # Mostrar calificaciones (panel) - para usuario autenticado

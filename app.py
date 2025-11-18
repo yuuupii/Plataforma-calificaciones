@@ -898,7 +898,47 @@ def delete_alumno():
 # --------------------------------------------------
 @app.route('/materias')
 def materias():
-    return render_template('materias.html')
+    # Validar sesión
+    rol = session.get("usuario_tipo")
+
+    # Solo permitir admin o docente
+    if rol not in ("admin", "docente"):
+        flash("Acceso restringido. Solo administradores o docentes.")
+        return redirect(url_for('index'))
+
+    # Obtener todas las licenciaturas
+    licenciaturas = db_query("SELECT * FROM licenciaturas")
+
+    # Diccionario de salida:
+    #   { licenciatura: { semestre: [materias] } }
+    materias_por_licenciatura = {}
+
+    for lic in licenciaturas:
+        lic_id = lic["id"]
+        nombre_lic = lic["nombre"]
+
+        # Obtener materias relacionadas a la licenciatura
+        materias = db_query("""
+            SELECT m.*, lm.semestre
+            FROM licenciaturas_materias lm
+            JOIN materias m ON m.id = lm.materia_id
+            WHERE lm.licenciatura_id = %s
+            ORDER BY lm.semestre, m.nombre
+        """, (lic_id,))
+
+        materias_por_semestre = {}
+
+        for materia in materias:
+            semestre = materia["semestre"]
+
+            if semestre not in materias_por_semestre:
+                materias_por_semestre[semestre] = []
+
+            materias_por_semestre[semestre].append(materia)
+
+        materias_por_licenciatura[nombre_lic] = materias_por_semestre
+
+    return render_template("materias.html", materias=materias_por_licenciatura)
 
 @app.route('/add_materia', methods=['POST'])
 def add_materia():

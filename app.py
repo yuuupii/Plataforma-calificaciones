@@ -654,16 +654,17 @@ def guardar_calificacion():
 # --------------------------------------------------
 @app.route('/delete_materia', methods=['POST'])
 def delete_materia():
-    try:
-        materia_id = request.form.get('id')
-        if not materia_id:
-            return jsonify({'success': False, 'message': 'ID de materia no proporcionado.'})
-        db_query("DELETE FROM materias WHERE id = %s", (materia_id,), commit=True)
-        db_query("DELETE FROM calificaciones WHERE materia = %s", (materia_id,), commit=True)
-        return jsonify({'success': True, 'message': 'Materia eliminada con éxito.'})
-    except Exception as e:
-        print("Error al eliminar materia:", e)
-        return jsonify({'success': False, 'message': str(e)})
+    materia_id = request.form.get('id')
+    if not materia_id:
+        return jsonify({'success': False, 'message': 'ID de materia no proporcionado'})
+
+    # Eliminar calificaciones asociadas
+    db_query("DELETE FROM calificaciones WHERE materia = %s", (materia_id,), commit=True)
+
+    # Eliminar la materia
+    db_query("DELETE FROM materias WHERE id = %s", (materia_id,), commit=True)
+
+    return jsonify({'success': True, 'message': 'Materia eliminada correctamente'})
 
 # --------------------------------------------------
 # Mostrar calificaciones (panel) - para usuario autenticado
@@ -898,24 +899,21 @@ def delete_alumno():
 # --------------------------------------------------
 @app.route('/materias')
 def materias():
-    # Permitir acceso a: admin, docente y estudiante
+    # Permitir acceso a admin, docente y estudiante
     tipo = session.get('usuario_tipo')
     if tipo not in ['admin', 'docente', 'estudiante']:
         flash("Acceso restringido. Inicia sesión.")
         return redirect(url_for('index'))
 
-    # Obtener todas las materias existentes
     materias_db = db_query("SELECT * FROM materias ORDER BY licenciatura, semestre, nombre")
 
-    # Agrupar por licenciatura y semestre
-    materias_por_licenciatura = {}
-    for materia in materias_db:
-        lic = materia.get('licenciatura')
-        sem = materia.get('semestre')
+    materias_por_lic = {}
+    for m in materias_db:
+        lic = m.get('licenciatura')
+        sem = m.get('semestre')
+        materias_por_lic.setdefault(lic, {}).setdefault(sem, []).append(m)
 
-        materias_por_licenciatura.setdefault(lic, {}).setdefault(sem, []).append(materia)
-
-    return render_template("materias.html", materias=materias_por_licenciatura)
+    return render_template("materias.html", materias=materias_por_lic)
 
 @app.route('/add_materia', methods=['POST'])
 def add_materia():
@@ -924,40 +922,29 @@ def add_materia():
     semestre = request.form.get('semestre')
 
     if not nombre or not licenciatura or not semestre:
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return 'Faltan campos', 400
-        flash('Por favor, completa todos los campos.', 'danger')
-        return redirect(url_for('gestion_materias'))
+        flash('Todos los campos son obligatorios', 'danger')
+        return redirect(url_for('materias'))
 
-    if verificar_materia_duplicada(nombre, licenciatura, semestre):
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return 'Duplicado', 409
-        flash('La materia ya existe para esa licenciatura y semestre.', 'warning')
-        return redirect(url_for('gestion_materias'))
+    # Validar duplicado
+    duplicado = db_query(
+        "SELECT 1 FROM materias WHERE nombre = %s AND licenciatura = %s AND semestre = %s",
+        (nombre, licenciatura, semestre),
+        one=True
+    )
 
-    try:
-        db_query("INSERT INTO materias (nombre, licenciatura, semestre) VALUES (%s, %s, %s)",
-                 (nombre, licenciatura, semestre), commit=True)
-        # opcional: tabla licenciaturas_materias
-        try:
-            db_query("INSERT INTO licenciaturas_materias (materia_id, licenciatura, semestre) VALUES (%s, %s, %s)",
-                     (None, licenciatura, semestre), commit=True)
-        except Exception:
-            pass
+    if duplicado:
+        flash('Esta materia ya existe en esa licenciatura y semestre.', 'warning')
+        return redirect(url_for('materias'))
 
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return 'Materia añadida', 200
-        flash('Materia añadida con éxito.', 'success')
-    except Exception as e:
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return f'Error: {str(e)}', 500
-        flash(f'Ocurrió un error al añadir la materia: {e}', 'danger')
-    return redirect(url_for('gestion_materias'))
+    # Insertar la materia
+    db_query(
+        "INSERT INTO materias (nombre, licenciatura, semestre) VALUES (%s, %s, %s)",
+        (nombre, licenciatura, semestre),
+        commit=True
+    )
 
-def verificar_materia_duplicada(nombre, licenciatura, semestre):
-    resultado = db_query('SELECT 1 FROM materias WHERE nombre = %s AND licenciatura = %s AND semestre = %s',
-                         (nombre, licenciatura, semestre), one=True)
-    return resultado is not None
+    flash('Materia añadida con éxito.', 'success')
+    return redirect(url_for('materias'))
 
 @app.route('/gestion_materias')
 def gestion_materias():

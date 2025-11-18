@@ -24,6 +24,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
+app.config['SESSION_PERMANENT'] = False
 
 # ---------------------------
 # Conexión a DB + helper db_query
@@ -463,6 +464,19 @@ def cambiar_contrasena():
         return redirect(url_for('cambiar_contrasena'))
 
     return render_template('cambiar_contrasena.html', tipo=session.get('usuario_tipo'))
+
+@app.route('/actualizar_contrasena/<tipo>/<int:user_id>', methods=['GET', 'POST'])
+def actualizar_contrasena(tipo, user_id):
+    tabla = 'maestros' if tipo == 'docente' else 'administrativos'
+    
+    if request.method == 'POST':
+        nueva = request.form.get('nueva_contrasena')
+        hash_ = generate_password_hash(nueva)
+        db_query(f"UPDATE {tabla} SET contrasena = %s WHERE id = %s", (hash_, user_id), commit=True)
+        flash("Contraseña actualizada correctamente.")
+        return redirect(url_for('registrar_usuario'))
+
+    return render_template('actualizar_contrasena.html', tipo=tipo, user_id=user_id)
 
 # --------------------------------------------------
 # Logouts y sesiones
@@ -950,7 +964,12 @@ def ver_materias():
 
 @app.route('/eliminar_materia/<int:materia_id>', methods=['POST'])
 def eliminar_materia(materia_id):
+    # 1. Primero eliminamos relaciones
+    db_query("DELETE FROM licenciaturas_materias WHERE materia_id = %s", (materia_id,), commit=True)
+
+    # 2. Luego eliminamos la materia
     db_query("DELETE FROM materias WHERE id = %s", (materia_id,), commit=True)
+
     flash('Materia eliminada exitosamente.', 'success')
     return redirect(url_for('ver_materias'))
 

@@ -970,17 +970,6 @@ def ver_materias():
             estructura[lic].setdefault(str(s), [])
     return render_template('ver_materias.html', materias=estructura)
 
-@app.route('/eliminar_materia/<int:materia_id>', methods=['POST'])
-def eliminar_materia(materia_id):
-    # 1. Primero eliminamos relaciones
-    db_query("DELETE FROM licenciaturas_materias WHERE materia_id = %s", (materia_id,), commit=True)
-
-    # 2. Luego eliminamos la materia
-    db_query("DELETE FROM materias WHERE id = %s", (materia_id,), commit=True)
-
-    flash('Materia eliminada exitosamente.', 'success')
-    return redirect(url_for('ver_materias'))
-
 @app.route('/obtener_materias', methods=['GET'])
 def obtener_materias():
     licenciatura = request.args.get('licenciatura')

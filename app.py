@@ -898,45 +898,22 @@ def delete_alumno():
 # --------------------------------------------------
 @app.route('/materias')
 def materias():
-    # Validar sesión
-    rol = session.get("usuario_tipo")
-
-    # Solo permitir admin o docente
-    if rol not in ("admin", "docente"):
-        flash("Acceso restringido. Solo administradores o docentes.")
+    # Permitir acceso a: admin, docente y estudiante
+    tipo = session.get('usuario_tipo')
+    if tipo not in ['admin', 'docente', 'estudiante']:
+        flash("Acceso restringido. Inicia sesión.")
         return redirect(url_for('index'))
 
-    # Obtener todas las licenciaturas
-    licenciaturas = db_query("SELECT * FROM licenciaturas")
+    # Obtener todas las materias existentes
+    materias_db = db_query("SELECT * FROM materias ORDER BY licenciatura, semestre, nombre")
 
-    # Diccionario de salida:
-    #   { licenciatura: { semestre: [materias] } }
+    # Agrupar por licenciatura y semestre
     materias_por_licenciatura = {}
+    for materia in materias_db:
+        lic = materia.get('licenciatura')
+        sem = materia.get('semestre')
 
-    for lic in licenciaturas:
-        lic_id = lic["id"]
-        nombre_lic = lic["nombre"]
-
-        # Obtener materias relacionadas a la licenciatura
-        materias = db_query("""
-            SELECT m.*, lm.semestre
-            FROM licenciaturas_materias lm
-            JOIN materias m ON m.id = lm.materia_id
-            WHERE lm.licenciatura_id = %s
-            ORDER BY lm.semestre, m.nombre
-        """, (lic_id,))
-
-        materias_por_semestre = {}
-
-        for materia in materias:
-            semestre = materia["semestre"]
-
-            if semestre not in materias_por_semestre:
-                materias_por_semestre[semestre] = []
-
-            materias_por_semestre[semestre].append(materia)
-
-        materias_por_licenciatura[nombre_lic] = materias_por_semestre
+        materias_por_licenciatura.setdefault(lic, {}).setdefault(sem, []).append(materia)
 
     return render_template("materias.html", materias=materias_por_licenciatura)
 

@@ -170,7 +170,7 @@
         <a href="{{ url_for('eliminar_usuario', tipo='docente', user_id=d.id) }}"
            class="btn btn-sm btn-danger"
            onclick="return confirm('¿Eliminar este docente?')">❌</a>
-           <a href="{{ url_for('actualizar_contrasena', tipo='docente', user_id=d.id) }}"
+           <a href="{{ url_for('cambiar_contrasena', tipo='docente', user_id=d.id) }}"
             class="btn btn-sm btn-warning">🔧</a>
       </td>
     </tr>

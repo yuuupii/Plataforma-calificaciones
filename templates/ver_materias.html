@@ -61,7 +61,11 @@
                 {% for materia in lista %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                   {{ materia.nombre }}
-                  <form method="POST" action="{{ url_for('eliminar_materia', materia_id=materia.id) }}"
+                  <button class="btn btn-sm btn-danger delete-button"
+                          data-id="{{ materia.id }}"
+                          data-nombre="{{ materia.nombre }}">
+                      Eliminar
+                  </button>
                         onsubmit="return confirm('¿Eliminar {{ materia.nombre }}?');">
                     <button class="btn btn-sm btn-danger">Eliminar</button>
                   </form>
@@ -79,5 +83,37 @@
     </div>
     {% endfor %}
   </div>
+  <script>
+document.addEventListener("DOMContentLoaded", () => {
+    const botones = document.querySelectorAll(".delete-button");
+
+    botones.forEach(boton => {
+        boton.addEventListener("click", async function () {
+            const id = this.dataset.id;
+            const nombre = this.dataset.nombre;
+
+            if (!confirm(`¿Seguro que deseas eliminar "${nombre}"?`)) return;
+
+            const response = await fetch(`/eliminar_materia/${id}`, {
+                method: "POST",
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                const li = this.closest("li");
+
+                li.style.transition = "0.4s";
+                li.style.opacity = "0";
+
+                setTimeout(() => li.remove(), 400);
+            } else {
+                alert("Error: " + result.error);
+            }
+        });
+    });
+  });
+</script>
 </body>
 </html>

@@ -469,13 +469,14 @@ def cambiar_contrasena():
 def actualizar_contrasena(tipo, user_id):
     tabla = 'maestros' if tipo == 'docente' else 'administrativos'
 
-    # Obtener usuario correcto dependiendo del tipo
-    usuario = db_query(f"SELECT * FROM {tabla} WHERE id = %s", (user_id,), fetch_one=True)
+    # Obtener un solo usuario usando "one=True"
+    usuario = db_query(f"SELECT * FROM {tabla} WHERE id = %s", (user_id,), one=True)
 
     if not usuario:
-        flash("Usuario no encontrado.")
+        flash("❌ Usuario no encontrado.")
         return redirect(url_for('registrar_usuario'))
 
+    # Si envían el formulario
     if request.method == 'POST':
         nueva = request.form.get('nueva_contrasena')
         hash_ = generate_password_hash(nueva)
@@ -486,10 +487,10 @@ def actualizar_contrasena(tipo, user_id):
             commit=True
         )
 
-        flash("Contraseña actualizada correctamente.")
+        flash("✅ Contraseña actualizada correctamente.")
         return redirect(url_for('registrar_usuario'))
 
-    # 🔹 ahora sí mandamos el usuario al template
+    # Mandamos usuario al template para que no falle la línea {{ usuario['usuario'] }}
     return render_template(
         'actualizar_contrasena.html',
         tipo=tipo,

@@ -468,15 +468,34 @@ def cambiar_contrasena():
 @app.route('/actualizar_contrasena/<tipo>/<int:user_id>', methods=['GET', 'POST'])
 def actualizar_contrasena(tipo, user_id):
     tabla = 'maestros' if tipo == 'docente' else 'administrativos'
-    
+
+    # Obtener usuario correcto dependiendo del tipo
+    usuario = db_query(f"SELECT * FROM {tabla} WHERE id = %s", (user_id,), fetch_one=True)
+
+    if not usuario:
+        flash("Usuario no encontrado.")
+        return redirect(url_for('registrar_usuario'))
+
     if request.method == 'POST':
         nueva = request.form.get('nueva_contrasena')
         hash_ = generate_password_hash(nueva)
-        db_query(f"UPDATE {tabla} SET contrasena = %s WHERE id = %s", (hash_, user_id), commit=True)
+
+        db_query(
+            f"UPDATE {tabla} SET contrasena = %s WHERE id = %s",
+            (hash_, user_id),
+            commit=True
+        )
+
         flash("Contraseña actualizada correctamente.")
         return redirect(url_for('registrar_usuario'))
 
-    return render_template('actualizar_contrasena.html', tipo=tipo, user_id=user_id)
+    # 🔹 ahora sí mandamos el usuario al template
+    return render_template(
+        'actualizar_contrasena.html',
+        tipo=tipo,
+        user_id=user_id,
+        usuario=usuario
+    )
 
 # --------------------------------------------------
 # Logouts y sesiones

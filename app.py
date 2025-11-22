@@ -912,7 +912,7 @@ def datos_alumnos():
 def delete_alumno():
     alumno_id = request.form.get('id')
     db_query("DELETE FROM estudiantes WHERE id = %s", (alumno_id,), commit=True)
-    return redirect(url_for('alumnos'))
+    return redirect(url_for('registrar_calificacion'))
 
 # --------------------------------------------------
 # Materias - CRUD y vistas

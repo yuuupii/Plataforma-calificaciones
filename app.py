@@ -911,8 +911,24 @@ def datos_alumnos():
 @app.route('/delete_alumno', methods=['POST'])
 def delete_alumno():
     alumno_id = request.form.get('id')
-    db_query("DELETE FROM estudiantes WHERE id = %s", (alumno_id,), commit=True)
-    return redirect(url_for('registrar_calificacion'))
+
+    try:
+        # 1. Borrar todas las calificaciones asociadas al alumno
+        db_query("DELETE FROM calificaciones WHERE user_id = %s", (alumno_id,), commit=True)
+
+        # 2. Borrar calificaciones nuevas (si usas esta tabla)
+        db_query("DELETE FROM nuevas_calificaciones WHERE user_id = %s", (alumno_id,), commit=True)
+
+        # 3. Ahora sí eliminar al alumno
+        db_query("DELETE FROM estudiantes WHERE id = %s", (alumno_id,), commit=True)
+
+        flash("Alumno eliminado correctamente.")
+        return redirect(url_for('alumnos'))
+
+    except Exception as e:
+        print("ERROR al eliminar alumno:", e)
+        flash("❌ No se pudo eliminar el alumno. Revisa dependencias.")
+        return redirect(url_for('registrar_calificacion'))
 
 # --------------------------------------------------
 # Materias - CRUD y vistas

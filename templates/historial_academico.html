@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Historial Académico</title>
 
   <!-- BOOTSTRAP -->
-  <link rel="stylesheet"
-        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <link rel="stylesheet"
-        href="{{ url_for('static', filename='css/parametros.css') }}">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parametros.css') }}">
 
   <!-- jsPDF + html2canvas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -19,66 +17,56 @@
 
   <style>
     /* -------------------------
-       Estilos generales
-    ------------------------- */
-    body {
-      transition: background 0.35s ease, color 0.35s ease;
+       Estilos globales y dark mode
+    --------------------------*/
+    :root{
+      --bg: #ffffff;
+      --card-bg: #ffffff;
+      --muted: #6c757d;
+      --panel-bg: #f8f9fa;
     }
-    .fade-in { opacity: 0; animation: fadeIn 0.6s forwards; }
+    body { transition: background 0.35s ease, color 0.35s ease; background:var(--bg); color:#222; }
+    .fade-in { opacity: 0; animation: fadeIn 0.55s forwards; }
     @keyframes fadeIn { to { opacity: 1; } }
 
-    /* Dark mode */
-    body.dark-mode { background: #0f1113; color: #e6eef6; }
-    .dark-mode .card { background: #121316; border-color: #222; }
-    .dark-mode .card-header { background: #1a1c1f; color: #fff; }
-    .dark-mode .grafica-wrapper { background: #0f1113; box-shadow: 0 3px 8px rgba(255,255,255,0.03); }
-
-    .card { transition: transform .22s ease, box-shadow .22s ease; }
+    .card { transition: transform .22s ease, box-shadow .22s ease, background .35s ease; }
     .card:hover { transform: translateY(-4px); box-shadow: 0 8px 22px rgba(0,0,0,0.12); }
 
     .grafica-wrapper {
-      max-width: 980px;
-      margin: 32px auto;
+      max-width: 1100px;
+      margin: 30px auto;
       padding: 22px;
-      background: #fff;
+      background: var(--card-bg);
       border-radius: 12px;
       box-shadow: 0 6px 20px rgba(0,0,0,0.06);
-      transition: background .35s ease;
+      transition: background .35s ease, color .35s ease;
     }
-    body.dark-mode .grafica-wrapper { background: #121416; }
 
-    /* Botón flotante ⚙️ */
-    .fab {
-      position: fixed;
-      right: 20px;
-      bottom: 20px;
-      z-index: 1050;
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.18);
-      cursor: pointer;
-    }
-    .fab.btn { padding: 0; }
+    /* badges y list-group en dark */
+    .list-group-item { background: transparent; transition: background .3s ease, color .3s ease; }
+    .badge-cal { min-width:34px; display:inline-block; text-align:center; }
 
-    /* inputs de color en modal */
-    .color-input { width: 48px; height: 32px; border: none; padding: 0; }
+    /* botón flotante */
+    .fab { position: fixed; right: 18px; bottom: 18px; z-index:1050; width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 18px rgba(0,0,0,0.18); cursor:pointer; }
+
+    /* inputs color modo */
+    .color-input { width:48px; height:32px; border: none; padding: 0; }
 
     /* responsive */
-    @media (max-width: 576px) {
-      .grafica-wrapper { padding: 12px; margin: 16px; }
+    @media (max-width:576px){
+      .grafica-wrapper{ padding:12px; margin:14px; }
     }
+
+    /* DARK MODE CSS */
+    body.dark-mode { --bg:#0f1113; --card-bg:#121316; --muted:#bfc9d6; --panel-bg:#141517; color:#e6eef6; }
+    body.dark-mode .card-header{ background:#1a1c1f !important; color:#fff !important; }
+    body.dark-mode .list-group-item { background: transparent; color:var(--muted); border-color: rgba(255,255,255,0.03); }
+    body.dark-mode .grafica-wrapper { box-shadow: 0 4px 12px rgba(255,255,255,0.03); }
   </style>
 </head>
-
 <body class="fade-in">
-
 <div class="container-fluid mt-4">
-
-  <!-- BOTONES SUPERIORES -->
+  <!-- Controles -->
   <div class="text-center mb-3">
     <button id="toggle-dark" class="btn btn-outline-secondary mr-2">🌙 Modo oscuro</button>
     <button id="btnPDF" class="btn btn-danger mr-2">📥 Descargar PDF</button>
@@ -90,10 +78,10 @@
     <h5 class="text-center text-muted mb-3">Estudiante: {{ estudiante }}</h5>
   {% endif %}
 
-  <!-- Contenido del historial -->
+  <!-- Historial por licenciatura / semestres -->
   {% if historial %}
     {% for licenciatura, semestres in historial.items() %}
-      <div class="card mb-3 fade-in">
+      <div class="card mb-3">
         <div class="card-header bg-primary text-white font-weight-bold">
           {{ licenciatura }}
         </div>
@@ -101,20 +89,18 @@
           <div class="row">
             {% for semestre, materias in semestres|dictsort %}
               <div class="col-md-6 col-lg-4 mb-3">
-                <div class="border rounded p-3 h-100">
+                <div class="border rounded p-3 h-100" style="background:var(--panel-bg);">
                   <h5 class="text-info">Semestre {{ semestre }}</h5>
                   {% if materias %}
                     <ul class="list-group list-group-flush mb-2">
                       {% for m in materias %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                          {{ m.materia }}
-                          <span class="badge badge-secondary">{{ m.calificacion }}</span>
+                          <span>{{ m.materia }}</span>
+                          <span class="badge badge-secondary badge-cal">{{ m.calificacion }}</span>
                         </li>
                       {% endfor %}
                     </ul>
-                    <div class="text-right font-weight-bold text-success">
-                      Promedio: {{ promedios_por_semestre[semestre] }}
-                    </div>
+                    <div class="text-right font-weight-bold text-success">Promedio: {{ promedios_por_semestre[semestre] }}</div>
                   {% else %}
                     <p class="text-muted">Sin calificaciones registradas.</p>
                   {% endif %}
@@ -133,57 +119,44 @@
     <a href="{{ url_for('mostrar_calificaciones') }}" class="btn btn-outline-secondary">Volver a Calificaciones</a>
   </div>
 
-  <!-- Datos JSON para JS (evita problemas de plantillas dentro de JS) -->
+  <!-- Data JSON protegida -->
   {% if promedios_por_semestre %}
-  <script id="data-semestres" type="application/json">
-    {{ promedios_por_semestre.keys() | list | tojson }}
-  </script>
-  <script id="data-promedios" type="application/json">
-    {{ promedios_por_semestre.values() | list | tojson }}
-  </script>
+    <script id="data-semestres" type="application/json">{{ promedios_por_semestre.keys() | list | tojson }}</script>
+    <script id="data-promedios" type="application/json">{{ promedios_por_semestre.values() | list | tojson }}</script>
 
-  <div class="grafica-wrapper fade-in">
-    <h5 class="text-center mb-3">📊 Evolución del Promedio por Semestre</h5>
-    <canvas id="graficaPromedios" height="160" aria-label="Gráfico de promedios por semestre"></canvas>
-  </div>
+    <div class="grafica-wrapper mt-4">
+      <h5 class="text-center mb-3">📊 Evolución del Promedio por Semestre</h5>
+      <div style="position:relative;height:360px;">
+        <canvas id="graficaPromedios" aria-label="Gráfica de promedios por semestre"></canvas>
+      </div>
+    </div>
   {% endif %}
 </div>
 
-<!-- Botón flotante para abrir modal de paleta/colores -->
-<button class="btn btn-light fab" id="openSettings" title="Ajustes de gráfica (colores)">
-  <span style="font-size:20px;">⚙️</span>
-</button>
+<!-- Botón flotante (⚙) -->
+<button id="openSettings" class="btn btn-light fab" title="Ajustes de gráfica (colores)">⚙️</button>
 
-<!-- Modal: ajustes de colores -->
-<div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+<!-- Modal de ajustes -->
+<div class="modal fade" id="settingsModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="settingsModalLabel">Ajustes de colores - Gráfica</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
-          <span aria-hidden="true">&times;</span>
-        </button>
+        <h5 class="modal-title">Ajustes de colores - Gráfica</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">&times;</button>
       </div>
       <div class="modal-body">
-        <p>Selecciona un <strong>color base</strong> y la paleta automática generará colores para cada barra. También puedes modificar colores individuales.</p>
-
+        <p>Elige un <strong>color base</strong> (paleta automática) o modifica colores individuales por barra.</p>
         <div class="form-row align-items-center mb-3">
           <div class="col-auto">
-            <label class="sr-only" for="baseColor">Color base</label>
-            <input type="color" id="baseColor" class="form-control form-control-color" value="#28a745" title="Color base">
+            <input id="baseColor" type="color" class="form-control form-control-color" value="#28a745" title="Color base">
           </div>
-          <div class="col">
+          <div class="col-auto">
             <button id="applyPalette" class="btn btn-primary">Aplicar paleta automática</button>
-            <button id="resetColors" class="btn btn-outline-secondary">Restablecer por defecto</button>
+            <button id="resetColors" class="btn btn-outline-secondary">Restablecer</button>
           </div>
         </div>
-
         <hr>
-
-        <div id="perBarColorsContainer">
-          <!-- Aquí JS inyecta inputs de color por barra -->
-        </div>
-
+        <div id="perBarColorsContainer"></div>
       </div>
       <div class="modal-footer">
         <button id="saveColors" type="button" class="btn btn-success">Guardar colores</button>
@@ -193,360 +166,337 @@
   </div>
 </div>
 
-<!-- SCRIPTS -->
+<!-- dependencias -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 <script>
-/* ============================
-   Configuración inicial
-   ============================ */
-const userId = JSON.parse('{{ session["user_id"] | default("null") | tojson | safe }}') || "anon";
-const storageKey = 'historial_colors_' + userId;
+/* ===========================
+   Inicialización y helpers
+   =========================== */
 
-function supportsLocalStorage() {
-  try { return 'localStorage' in window && window.localStorage !== null; } catch (e) { return false; }
+ // userId seguro: renderiza null o el id, sin romper JS
+ const userId = "{{ session.get('user_id', 'anon') }}";
+ const storageKey = 'historial_colors_' + userId;
+ const darkKey = 'historial_dark_' + userId;
+
+// util: comprobar localStorage
+function supportsLocalStorage(){ try{ return 'localStorage' in window && window.localStorage !== null; }catch(e){return false;} }
+
+// hex<->HSL helpers (usados para paleta)
+function hexToHsl(hex){
+  hex = hex.replace('#','');
+  const r = parseInt(hex.substring(0,2),16)/255;
+  const g = parseInt(hex.substring(2,4),16)/255;
+  const b = parseInt(hex.substring(4,6),16)/255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h=0,s=0,l=(max+min)/2;
+  if(max!==min){
+    const d=max-min;
+    s = l>0.5 ? d/(2-max-min) : d/(max+min);
+    switch(max){
+      case r: h=(g-b)/d + (g<b?6:0); break;
+      case g: h=(b-r)/d + 2; break;
+      default: h=(r-g)/d + 4; break;
+    }
+    h/=6;
+  }
+  return [Math.round(h*360), Math.round(s*100), Math.round(l*100)];
+}
+function hslToHex(h,s,l){
+  s/=100; l/=100;
+  const k = n => (n + h/30) % 12;
+  const a = s * Math.min(l, 1-l);
+  const f = n => {
+    const color = l - a * Math.max(-1, Math.min(k(n)-3, Math.min(9 - k(n), 1)));
+    return Math.round(255*color).toString(16).padStart(2,'0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+function generatePalette(baseHex, count){
+  const [h,s,l] = hexToHsl(baseHex);
+  const palette=[];
+  const step = Math.max(6, Math.floor(360 / Math.max(6,count)));
+  for(let i=0;i<count;i++){
+    const hue = (h + i*step) % 360;
+    const sat = Math.min(90, Math.max(40, s + (i%2?6:-6)));
+    const lig = Math.min(70, Math.max(28, l + (i%2?6:-6)));
+    palette.push(hslToHex(hue,sat,lig));
+  }
+  return palette;
+}
+function hexToRgba(hex, alpha=1){
+  hex = hex.replace('#','');
+  const bigint = parseInt(hex,16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
 }
 
-/* ----------------------------
-   Dark mode toggle
-   ---------------------------- */
-const toggleDarkBtn = document.getElementById('toggle-dark');
-toggleDarkBtn.addEventListener('click', () => {
-  document.body.classList.toggle('dark-mode');
-  localStorage.setItem('historial_dark', document.body.classList.contains('dark-mode'));
-  // actualizar colores si la gráfica ya fue creada
-  actualizarColoresGrafica();
-});
-
-if (localStorage.getItem('historial_dark') === 'true') {
-  document.body.classList.add('dark-mode');
-}
-
-/* ----------------------------
-   PDF / IMG botones
-   ---------------------------- */
+/* ===========================
+   PDF & IMG botones
+   =========================== */
 document.getElementById('btnPDF')?.addEventListener('click', async () => {
   const { jsPDF } = window.jspdf;
-  const elemento = document.body;
-  const canvas = await html2canvas(elemento, { scale: 2 });
-  const imgData = canvas.toDataURL('image/png');
-  const pdf = new jsPDF('p', 'mm', 'a4');
-  const pdfWidth = pdf.internal.pageSize.getWidth();
-  const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-  pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+  const el = document.body;
+  const canvas = await html2canvas(el, { scale: 2 });
+  const img = canvas.toDataURL('image/png');
+  const pdf = new jsPDF('p','mm','a4');
+  const w = pdf.internal.pageSize.getWidth();
+  const h = (canvas.height * w) / canvas.width;
+  pdf.addImage(img, 'PNG', 0, 0, w, h);
   pdf.save('historial_academico.pdf');
 });
-
 document.getElementById('btnIMG')?.addEventListener('click', () => {
   const c = document.getElementById('graficaPromedios');
-  if (!c) return alert('Gráfica no disponible');
+  if(!c) return alert('Gráfica no disponible');
   const a = document.createElement('a');
   a.href = c.toDataURL('image/png', 1.0);
   a.download = 'grafica_promedios.png';
   a.click();
 });
 
-/* ============================
-   Datos (prevenimos errores de plantilla)
-   ============================ */
-let semestres = [];
-let promedios = [];
-const elSem = document.getElementById('data-semestres');
-const elProm = document.getElementById('data-promedios');
-if (elSem && elProm) {
-  try {
-    semestres = JSON.parse(elSem.textContent || '[]');
-    promedios = JSON.parse(elProm.textContent || '[]');
-  } catch (e) {
-    console.error('Error parseando datos JSON:', e);
-  }
+/* ===========================
+   Cargar datos JSON desde plantilla
+   =========================== */
+let semestres = [], promedios = [];
+const elSem = document.getElementById('data-semestres'), elProm = document.getElementById('data-promedios');
+if(elSem && elProm){
+  try{
+    semestres = JSON.parse(elSem.textContent||'[]');
+    promedios = JSON.parse(elProm.textContent||'[]');
+  }catch(e){ console.error('Error parseando datos JSON',e); }
 }
 
-/* ============================
-   Paleta automática (genera n colores desde un color base)
-   - Usamos HSL para crear variaciones
-   ============================ */
-function hexToHsl(hex) {
-  hex = hex.replace('#', '');
-  const bigint = parseInt(hex, 16);
-  const r = (bigint >> 16) & 255;
-  const g = (bigint >> 8) & 255;
-  const b = bigint & 255;
-  const rPct = r / 255, gPct = g / 255, bPct = b / 255;
-  const max = Math.max(rPct, gPct, bPct), min = Math.min(rPct, gPct, bPct);
-  let h, s, l = (max + min) / 2;
-  if (max === min) h = s = 0;
-  else {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case rPct: h = (gPct - bPct) / d + (gPct < bPct ? 6 : 0); break;
-      case gPct: h = (bPct - rPct) / d + 2; break;
-      default: h = (rPct - gPct) / d + 4; break;
-    }
-    h /= 6;
-  }
-  return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
-}
-function hslToHex(h,s,l){
-  s /= 100; l /= 100;
-  const k = n => (n + h/30) % 12;
-  const a = s * Math.min(l, 1-l);
-  const f = n => {
-    const c = Math.max(Math.min(k(n)-3, 9 - k(n), 1), -1);
-    const color = l - a * c;
-    return Math.round(255 * color).toString(16).padStart(2, '0');
-  };
-  return `#${f(0)}${f(8)}${f(4)}`;
-}
-function generatePalette(baseHex, count) {
-  const [h, s, l] = hexToHsl(baseHex);
-  const palette = [];
-  // distribuir tonos alrededor del hue base
-  const step = Math.max(6, Math.floor(360 / Math.max(6, count)));
-  for (let i = 0; i < count; i++) {
-    const hue = (h + i * step) % 360;
-    const sat = Math.min(85, s + (i%2?6:-4)); // ligera variación
-    const lig = Math.min(65, Math.max(30, l + (i%2?6:-6)));
-    palette.push(hslToHex(hue, sat, lig));
-  }
-  return palette;
-}
-
-/* ============================
-   Guardar / recuperar colores (localStorage)
-   ============================ */
-function saveColorsToStorage(colors) {
-  if (!supportsLocalStorage()) return;
+/* ===========================
+   Guardar / cargar colores en localStorage
+   =========================== */
+function saveColorsToStorage(colors){
+  if(!supportsLocalStorage()) return;
   localStorage.setItem(storageKey, JSON.stringify(colors));
 }
-function loadColorsFromStorage() {
-  if (!supportsLocalStorage()) return null;
+function loadColorsFromStorage(){
+  if(!supportsLocalStorage()) return null;
   const raw = localStorage.getItem(storageKey);
   return raw ? JSON.parse(raw) : null;
 }
 
-/* ============================
-   Crear gráfica (Chart.js)
-   - máximo 10
-   - animación inicial de barras
-   - hover: escala y sombra
-   ============================ */
+/* ===========================
+   Paleta por defecto / init colors
+   =========================== */
+function loadInitialColors(){
+  let stored = loadColorsFromStorage();
+  if(stored && Array.isArray(stored) && stored.length >= promedios.length){
+    return stored.slice(0, promedios.length);
+  }
+  const baseDefault = document.getElementById('baseColor') ? document.getElementById('baseColor').value : '#28a745';
+  return generatePalette(baseDefault, promedios.length);
+}
+
+/* ===========================
+   Chart creation + safe destroy
+   =========================== */
 let grafica = null;
-function crearGrafica(initialColors) {
+function crearGrafica(colors){
+  // destruir si existe (previene memory leaks / estirado)
+  if(grafica){ try{ grafica.destroy(); }catch(e){} grafica = null; }
+
   const ctx = document.getElementById('graficaPromedios').getContext('2d');
-  // generar background con alpha y border
-  const backgrounds = initialColors.map(c => hexToRgba(c, 0.55));
-  const borders = initialColors.map(c => c);
+  const backgrounds = colors.map(c => hexToRgba(c, 0.58));
+  const borders = colors.slice();
 
   grafica = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: semestres.map(s => 'Semestre ' + s),
+      labels: semestres.map(s=>'Semestre '+s),
       datasets: [{
         label: 'Promedio',
         data: promedios,
         backgroundColor: backgrounds,
         borderColor: borders,
-        borderWidth: 1.5,
-        hoverBorderWidth: 2
+        borderWidth: 1.5
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      animation: { duration: 1100, easing: 'easeOutQuart' },
-      plugins: {
-        legend: { display: false },
-        tooltip: { mode: 'index', intersect: false }
-      },
+      animation: { duration: 900, easing: 'easeOutQuart' },
+      plugins: { legend: { display:false } },
       scales: {
-        y: {
-          beginAtZero: true,
-          max: 10,
-          ticks: { stepSize: 1 }
-        }
+        y: { beginAtZero:true, max:10, ticks: { stepSize:1 } }
       },
       onHover: (evt, elements) => {
-        // cambia cursor si está sobre una barra
-        evt.native ? evt.native.target.style.cursor = elements.length ? 'pointer' : 'default' : null;
+        // cursor pointer si hover en barra
+        const canvas = evt.native ? evt.native.target : null;
+        if(canvas) canvas.style.cursor = elements.length ? 'pointer' : 'default';
+        // animate border/alpha for hovered element
+        if(elements && elements.length > 0){
+          const idx = elements[0].index;
+          highlightBar(idx);
+        } else {
+          resetBarHighlight();
+        }
       }
     }
   });
-
-  // hover anim: agrandar barra y añadir sombra (usando plugin Chart.js)
-  Chart.defaults.plugins.customHoverGrow = {
-    enabled: true
-  };
-  // plugin para suavizar hover (añadir sombra)
-  Chart.register({
-    id: 'hoverGrow',
-    afterDatasetDraw: function(chart) {
-      // nada aquí — usamos opciones CSS/transform con canvas no es directo,
-      // pero Chart ya muestra hover estilo por defecto; para animación extra podemos redibujar.
-    }
-  });
 }
 
-/* helper: convertir hex a rgba */
-function hexToRgba(hex, alpha=1) {
-  hex = hex.replace('#','');
-  const bigint = parseInt(hex,16);
-  const r = (bigint >> 16) & 255;
-  const g = (bigint >> 8) & 255;
-  const b = bigint & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+// highlight: agranda visualmente la barra hovered
+let lastHighlighted = null;
+function highlightBar(index){
+  if(!grafica) return;
+  if(lastHighlighted === index) return;
+  resetBarHighlight();
+  const ds = grafica.data.datasets[0];
+  // aumentar borderWidth y alpha del fondo
+  ds._savedBorderWidths = ds._savedBorderWidths || [];
+  ds._savedBackgrounds = ds._savedBackgrounds || [];
+  ds._savedBorderWidths[index] = ds.borderWidth;
+  ds._savedBackgrounds[index] = ds.backgroundColor[index];
+  ds.borderColor[index] = ds.borderColor[index]; // keep
+  // aumentar alpha
+  ds.backgroundColor[index] = hexToRgba(ds.borderColor[index], 0.85);
+  // for visual bigger border:
+  ds.borderWidth = ds.borderWidth + 1.5;
+  lastHighlighted = index;
+  grafica.update('none');
+}
+function resetBarHighlight(){
+  if(!grafica) return;
+  const ds = grafica.data.datasets[0];
+  if(!ds._savedBackgrounds) return;
+  for(let i=0;i<ds.backgroundColor.length;i++){
+    if(ds._savedBackgrounds[i]) ds.backgroundColor[i] = ds._savedBackgrounds[i];
+  }
+  // restore borderWidth if we changed it
+  if(ds._savedBorderWidths && ds._savedBorderWidths.length){
+    ds.borderWidth = ds._savedBorderWidths[0] || 1.5;
+  }
+  ds._savedBackgrounds = [];
+  ds._savedBorderWidths = [];
+  lastHighlighted = null;
+  grafica.update('none');
 }
 
-/* ============================
-   UI de ajustes (modal)
-   - muestra inputs por barra con colores actuales
-   ============================ */
+/* ===========================
+   UI Modal: construir inputs por barra y guardar cambios
+   =========================== */
 const openSettings = document.getElementById('openSettings');
 const settingsModal = $('#settingsModal');
-
-openSettings.addEventListener('click', () => {
+openSettings.addEventListener('click', ()=> {
   settingsModal.modal('show');
   buildPerBarColorInputs();
 });
-
-function buildPerBarColorInputs() {
+function buildPerBarColorInputs(){
   const container = document.getElementById('perBarColorsContainer');
   container.innerHTML = '';
-  if (!grafica) return;
-
+  if(!grafica) return;
   const labels = grafica.data.labels;
-  const datasetCols = grafica.data.datasets[0].borderColor.map(c => c);
-  labels.forEach((lbl, i) => {
+  const borderCols = grafica.data.datasets[0].borderColor.slice();
+  labels.forEach((lbl,i) => {
     const row = document.createElement('div');
     row.className = 'form-row align-items-center mb-2';
-
-    const colLabel = document.createElement('div');
-    colLabel.className = 'col-auto';
-    colLabel.innerHTML = `<strong style="min-width:140px;display:inline-block">${lbl}</strong>`;
-
-    const colInput = document.createElement('div');
-    colInput.className = 'col-auto';
-    const input = document.createElement('input');
-    input.type = 'color';
-    input.className = 'color-input';
-    input.value = datasetCols[i] || '#888888';
-    input.dataset.index = i;
-    colInput.appendChild(input);
-
-    const colPreview = document.createElement('div');
-    colPreview.className = 'col';
-    colPreview.innerHTML = `<small class="text-muted">Color de barra</small>`;
-
-    row.appendChild(colLabel);
-    row.appendChild(colInput);
-    row.appendChild(colPreview);
+    row.innerHTML = `
+      <div class="col-auto"><strong style="min-width:140px;display:inline-block">${lbl}</strong></div>
+      <div class="col-auto"><input type="color" class="color-input" data-index="${i}" value="${borderCols[i]||'#888888'}"></div>
+      <div class="col"><small class="text-muted">Color de la barra</small></div>
+    `;
     container.appendChild(row);
-
-    // on change: actualizar la barra en tiempo real
-    input.addEventListener('input', (ev) => {
-      const idx = Number(ev.target.dataset.index);
-      const newHex = ev.target.value;
+  });
+  // listeners
+  container.querySelectorAll('input.color-input').forEach(inp=>{
+    inp.addEventListener('input', (e)=>{
+      const idx = Number(e.target.dataset.index);
+      const newHex = e.target.value;
       grafica.data.datasets[0].borderColor[idx] = newHex;
-      grafica.data.datasets[0].backgroundColor[idx] = hexToRgba(newHex, 0.55);
+      grafica.data.datasets[0].backgroundColor[idx] = hexToRgba(newHex, 0.58);
       grafica.update('none');
     });
   });
 }
 
-/* ----------------------------
-   Aplicar paleta automática desde baseColor
-   ---------------------------- */
-document.getElementById('applyPalette').addEventListener('click', () => {
+/* ===========================
+   Botones modal: aplicar paleta / reset / save
+   =========================== */
+document.getElementById('applyPalette')?.addEventListener('click', ()=>{
   const base = document.getElementById('baseColor').value || '#28a745';
-  const count = semestres.length || (promedios.length);
+  const count = Math.max(1, promedios.length);
   const pal = generatePalette(base, count);
-  // aplicar al chart
-  if (grafica) {
+  if(grafica){
     grafica.data.datasets[0].borderColor = pal.slice();
-    grafica.data.datasets[0].backgroundColor = pal.map(h=>hexToRgba(h,0.55));
+    grafica.data.datasets[0].backgroundColor = pal.map(h=>hexToRgba(h,0.58));
     grafica.update();
   }
-  // actualizar inputs si modal abierto
   buildPerBarColorInputs();
 });
-
-/* ----------------------------
-   Reset colores por defecto (paleta desde color base por defecto)
-   ---------------------------- */
-document.getElementById('resetColors').addEventListener('click', () => {
+document.getElementById('resetColors')?.addEventListener('click', ()=>{
   const defaultBase = '#28a745';
   document.getElementById('baseColor').value = defaultBase;
-  const pal = generatePalette(defaultBase, semestres.length || promedios.length);
-  if (grafica) {
+  const pal = generatePalette(defaultBase, Math.max(1,promedios.length));
+  if(grafica){
     grafica.data.datasets[0].borderColor = pal.slice();
-    grafica.data.datasets[0].backgroundColor = pal.map(h=>hexToRgba(h,0.55));
+    grafica.data.datasets[0].backgroundColor = pal.map(h=>hexToRgba(h,0.58));
     grafica.update();
   }
   buildPerBarColorInputs();
 });
-
-/* ----------------------------
-   Guardar colores (persistir)
-   ---------------------------- */
-document.getElementById('saveColors').addEventListener('click', () => {
-  if (!grafica) return;
+document.getElementById('saveColors')?.addEventListener('click', ()=>{
+  if(!grafica) return;
   const colors = grafica.data.datasets[0].borderColor.slice();
   saveColorsToStorage(colors);
   settingsModal.modal('hide');
 });
 
-/* ----------------------------
-   Cargar colores en init (si hay guardados)
-   ---------------------------- */
-function loadInitialColors() {
-  let stored = loadColorsFromStorage();
-  if (stored && Array.isArray(stored) && stored.length >= promedios.length) {
-    return stored.slice(0, promedios.length);
-  }
-  // si no hay guardados, generar desde base default
-  const baseDefault = document.getElementById('baseColor') ? document.getElementById('baseColor').value : '#28a745';
-  return generatePalette(baseDefault, promedios.length);
+/* ===========================
+   Ajustes modo oscuro y adaptar colores guardados
+   =========================== */
+document.getElementById('toggle-dark').addEventListener('click', ()=>{
+  document.body.classList.toggle('dark-mode');
+  if(supportsLocalStorage()) localStorage.setItem(darkKey, document.body.classList.contains('dark-mode'));
+  adaptColorsForMode();
+});
+if(supportsLocalStorage() && localStorage.getItem(darkKey) === 'true'){
+  document.body.classList.add('dark-mode');
 }
-
-/* ----------------------------
-   Actualizar colores segun modo oscuro
-   ---------------------------- */
-function actualizarColoresGrafica() {
-  if (!grafica) return;
-  const modoOscuro = document.body.classList.contains('dark-mode');
-
-  // obtener colores base guardados (si existen)
-  let current = grafica.data.datasets[0].borderColor.slice();
-  // ajustar brillo/tono si modo oscuro: subir luz o cambiar hue (aquí hacemos una leve aclaración)
-  const adjusted = current.map(hex => {
-    // convertir a HSL y si dark, aumentar lum; si light, dejar
-    const [h,s,l] = hexToHsl(hex);
-    const lum = modoOscuro ? Math.min(70, l + 6) : Math.max(28, l - 4);
-    return hslToHex(h, s, lum);
+function adaptColorsForMode(){
+  if(!grafica) return;
+  const dark = document.body.classList.contains('dark-mode');
+  // ajustar luminosidad de cada color para mayor contraste en dark
+  const cols = grafica.data.datasets[0].borderColor.slice();
+  const adjusted = cols.map(hex=>{
+    try{
+      const [h,s,l] = hexToHsl(hex);
+      const newL = dark ? Math.min(78, l + 8) : Math.max(26, l - 6);
+      return hslToHex(h,s,newL);
+    }catch(e){ return hex; }
   });
-
   grafica.data.datasets[0].borderColor = adjusted;
-  grafica.data.datasets[0].backgroundColor = adjusted.map(h => hexToRgba(h, 0.55));
+  grafica.data.datasets[0].backgroundColor = adjusted.map(h=>hexToRgba(h,0.58));
   grafica.update();
 }
 
-/* ============================
-   Inicialización final
-   ============================ */
-document.addEventListener('DOMContentLoaded', () => {
-  if (!semestres.length || !promedios.length) return;
-  // cargar colores (persistidos o automáticos)
-  const inicial = loadInitialColors();
-  // si la longitud no coincide: regenerar paleta
-  const colors = (inicial.length === promedios.length) ? inicial : generatePalette(document.getElementById('baseColor').value, promedios.length);
+/* ===========================
+   Inicialización final (DOMContentLoaded)
+   =========================== */
+document.addEventListener('DOMContentLoaded', ()=>{
+  if(!semestres.length || !promedios.length) return;
+  // cargar colores guardados o generar paleta
+  const stored = loadColorsFromStorage();
+  let colors;
+  if(stored && Array.isArray(stored) && stored.length >= promedios.length){
+    colors = stored.slice(0,promedios.length);
+  } else {
+    const base = document.getElementById('baseColor') ? document.getElementById('baseColor').value : '#28a745';
+    colors = generatePalette(base, Math.max(1,promedios.length));
+  }
 
   crearGrafica(colors);
 
-  // si hay colores guardados y modo oscuro activo, ajustar la apariencia
-  if (localStorage.getItem('historial_dark') === 'true') {
-    actualizarColoresGrafica();
+  // si dark mode almacenado -> aplicar y ajustar
+  if(supportsLocalStorage() && localStorage.getItem(darkKey) === 'true'){
+    document.body.classList.add('dark-mode');
+    adaptColorsForMode();
   }
 });
 </script>
